@@ -34,10 +34,14 @@ function Invoke-Launcher {
     $savedPath = $env:PATH
     $savedWorkdir = $env:AI_TERMINAL_DECK_WORKDIR
     $savedDryRun = $env:AI_TERMINAL_DECK_DRY_RUN
+    $savedNoPause = $env:AI_TERMINAL_DECK_NO_PAUSE
+    $savedSkipPrompts = $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS
     try {
         $env:PATH = $PathValue
         $env:AI_TERMINAL_DECK_WORKDIR = $DeckWorkdir
         $env:AI_TERMINAL_DECK_DRY_RUN = if ($DryRun) { "1" } else { $null }
+        $env:AI_TERMINAL_DECK_NO_PAUSE = "1"
+        $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = "1"
         $output = & "$env:SystemRoot\System32\cmd.exe" /d /c ('"{0}" {1}' -f $launcher, ($Arguments -join " ")) 2>&1
         return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($output -join "`n") }
     }
@@ -45,6 +49,8 @@ function Invoke-Launcher {
         $env:PATH = $savedPath
         $env:AI_TERMINAL_DECK_WORKDIR = $savedWorkdir
         $env:AI_TERMINAL_DECK_DRY_RUN = $savedDryRun
+        $env:AI_TERMINAL_DECK_NO_PAUSE = $savedNoPause
+        $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = $savedSkipPrompts
     }
 }
 
@@ -64,8 +70,8 @@ try {
     Invoke-Test "help explains the single launcher" {
         $result = Invoke-Launcher -Arguments @("--help") -PathValue $controlledPath -DeckWorkdir $workdir
         Assert-True ($result.ExitCode -eq 0) "Expected help to exit 0, got $($result.ExitCode)."
-        Assert-True ($result.Output -match "three equal Windows Terminal panes") "Help does not explain the layout."
-        Assert-True ($result.Output -match "AI_TERMINAL_DECK_WORKDIR") "Help omits the environment override."
+        Assert-True ($result.Output -match "one to three Windows") "Help does not explain the adaptive layout."
+        Assert-True ($result.Output -match "explicit Y response") "Help omits installation consent."
     }
 
     Invoke-Test "readiness check finds all required commands" {
@@ -91,6 +97,27 @@ try {
         $result = Invoke-Launcher -Arguments @("--check") -PathValue $controlledPath -DeckWorkdir $workdir
         Assert-True ($result.ExitCode -eq 3) "Expected missing dependency exit 3, got $($result.ExitCode)."
         Assert-True ($result.Output -match '\[MISSING\] Kimi Code') "Missing Kimi message was not shown."
+        Assert-True ($result.Output -match 'Press any key to close this window') "Double-click failure would close without a visible pause."
+        Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
+    }
+
+    Invoke-Test "two installed tools create two equal panes" {
+        Remove-Item -LiteralPath (Join-Path $stubBin "kimi.cmd")
+        $result = Invoke-Launcher -Arguments @() -PathValue $controlledPath -DeckWorkdir $workdir -DryRun $true
+        Assert-True ($result.ExitCode -eq 0) "Expected adaptive two-pane launch to exit 0, got $($result.ExitCode)."
+        Assert-True ($result.Output -match 'new-tab --title "Codex"') "Codex pane is missing."
+        Assert-True ($result.Output -match 'split-pane -V -s 0\.5 --title "Claude"') "Equal Claude split is missing."
+        Assert-True ($result.Output -notmatch '--title "Kimi"') "Missing Kimi should not receive a pane."
+        Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
+    }
+
+    Invoke-Test "one installed tool creates one pane" {
+        Remove-Item -LiteralPath (Join-Path $stubBin "claude.cmd"), (Join-Path $stubBin "kimi.cmd")
+        $result = Invoke-Launcher -Arguments @() -PathValue $controlledPath -DeckWorkdir $workdir -DryRun $true
+        Assert-True ($result.ExitCode -eq 0) "Expected adaptive one-pane launch to exit 0, got $($result.ExitCode)."
+        Assert-True ($result.Output -match 'new-tab --title "Codex"') "Codex pane is missing."
+        Assert-True ($result.Output -notmatch 'split-pane') "A one-tool layout should not split the terminal."
+        Set-Content -LiteralPath (Join-Path $stubBin "claude.cmd") -Value "@exit /b 0" -Encoding ascii
         Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
     }
 
@@ -100,12 +127,17 @@ try {
         $result = Invoke-Launcher -Arguments @("--check", $quotedMissingDirectory) -PathValue $controlledPath -DeckWorkdir ""
         Assert-True ($result.ExitCode -eq 2) "Expected invalid-directory exit 2, got $($result.ExitCode)."
         Assert-True ($result.Output -match "working directory does not exist") "Invalid-directory explanation is missing."
+        Assert-True ($result.Output -match 'Press any key to close this window') "Invalid-directory failure would close without a visible pause."
     }
 
-    Invoke-Test "launcher contains no embedded credentials or network downloads" {
+    Invoke-Test "guided installers are consent-gated and use official sources" {
         $content = Get-Content -LiteralPath $launcher -Raw
         Assert-True ($content -notmatch '(?i)(api[_-]?key|token|password)\s*=\s*[^%\s]') "Possible embedded credential assignment found."
-        Assert-True ($content -notmatch '(?i)(invoke-webrequest|curl|wget|bitsadmin|certutil)') "Launcher unexpectedly downloads content."
+        foreach ($source in @('https://chatgpt.com/codex/install.ps1', 'https://claude.ai/install.ps1', 'https://code.kimi.com/kimi-code/install.ps1')) {
+            Assert-True ($content -match [regex]::Escape($source)) "Official installer source is missing: $source"
+        }
+        Assert-True ($content -match 'choice /C YN') "Installers are not protected by an explicit yes/no prompt."
+        Assert-True ($content -match 'if "%CHECK_ONLY%"=="1" goto :check_result') "Readiness-only mode could reach install prompts."
         Assert-True ($content -notmatch '(?i)(remove-item|del\s|erase\s|rmdir\s|rd\s)') "Launcher unexpectedly deletes files."
     }
 }

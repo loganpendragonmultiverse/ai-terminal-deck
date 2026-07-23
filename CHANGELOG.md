@@ -2,6 +2,22 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## [1.0.1] - 2026-07-23
+
+### Fixed
+
+- Keep dependency, working-directory, and Windows Terminal startup errors visible when the launcher is opened by double-click.
+- Add a clear keypress prompt before closing after startup failures.
+- Preserve non-interactive test execution through the internal `AI_TERMINAL_DECK_NO_PAUSE` test seam.
+
+### Added
+
+- Detect each supported AI CLI independently and offer a separate, consent-gated official installer for every missing tool.
+- Recheck the active `PATH` after installation attempts and immediately continue into the terminal layout when possible.
+- Automatically open one, two, or three panes based on the CLIs actually available; two-pane and three-pane layouts divide the window evenly.
+- Offer Windows Terminal installation through its Microsoft `winget` package when the required terminal host is missing.
+- Keep `--check` strictly read-only with no installation prompts or launches.
+
 ## [1.0.0] - 2026-07-23
 
 ### Added
