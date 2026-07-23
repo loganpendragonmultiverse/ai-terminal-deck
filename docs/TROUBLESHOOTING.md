@@ -8,7 +8,15 @@ Run:
 Launch-AI-Terminal-Deck.bat --check
 ```
 
-Install the missing official CLI or correct `PATH`, open a new terminal, and repeat the check. The launcher stops before opening panes when any required command is unavailable.
+`--check` is report-only. Run the launcher without `--check` to receive an individual installation prompt for each missing CLI. It uses only the official installer URL displayed before the prompt and requires `Y` before running it. Declined or unsuccessful installations are omitted from the adaptive layout; any successfully detected tools still open.
+
+When started by double-click, version 1.0.1 and newer keeps this explanation visible until you press a key. Earlier versions could close the temporary console before the message could be read.
+
+## An installer finished but the tool is still missing
+
+The launcher refreshes its process `PATH` and checks again. If the provider says a terminal restart is required, close AI Terminal Deck and double-click it again. You can also run the provider's command directly in a new PowerShell window to complete first-run login.
+
+Kimi Code expects Git for Windows for normal project use. Install Git separately from its official distribution if Kimi reports that `git` is unavailable.
 
 ## The wrong folder opens
 
