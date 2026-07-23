@@ -138,6 +138,11 @@ try {
         }
         Assert-True ($content -match 'choice /C YN') "Installers are not protected by an explicit yes/no prompt."
         Assert-True ($content -match 'if "%CHECK_ONLY%"=="1" goto :check_result') "Readiness-only mode could reach install prompts."
+        Assert-True ($content -notmatch '\^\| iex') "A caret before the PowerShell pipe would be passed literally and break every installer."
+        $installerPattern = '(?m)^powershell\.exe .* -Command "irm ''https://[^'']+/install\.ps1'' \| iex"\r?$'
+        Assert-True (([regex]::Matches($content, $installerPattern)).Count -eq 3) "Expected three correctly parsed PowerShell installer commands."
+        $crlfContent = $content -replace '(?<!\r)\n', "`r`n"
+        Assert-True (([regex]::Matches($crlfContent, $installerPattern)).Count -eq 3) "Installer regression check must also pass after a CRLF checkout."
         Assert-True ($content -notmatch '(?i)(remove-item|del\s|erase\s|rmdir\s|rd\s)') "Launcher unexpectedly deletes files."
     }
 }

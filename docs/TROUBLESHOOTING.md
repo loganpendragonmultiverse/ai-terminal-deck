@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## An installer reports that `'^'` is an invalid argument
+
+This was a launcher quoting bug in version 1.0.1 and affected all three AI installers. Download version 1.0.2 or newer. The corrected installer commands no longer pass the batch escape character into PowerShell.
+
 ## A command is missing
 
 Run:

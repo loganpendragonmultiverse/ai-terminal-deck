@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 
-set "AI_TERMINAL_DECK_VERSION=1.0.1"
+set "AI_TERMINAL_DECK_VERSION=1.0.2"
 set "CHECK_ONLY=0"
 set "INSTALL_ATTEMPTED=0"
 
@@ -146,7 +146,7 @@ echo Official installer: https://chatgpt.com/codex/install.ps1
 call :confirm "Install Codex CLI now?"
 if "%CONFIRMED%"=="0" exit /b 0
 set "INSTALL_ATTEMPTED=1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://chatgpt.com/codex/install.ps1' ^| iex"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://chatgpt.com/codex/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Codex CLI installation did not complete successfully.
 exit /b 0
 
@@ -158,7 +158,7 @@ echo Official installer: https://claude.ai/install.ps1
 call :confirm "Install Claude Code now?"
 if "%CONFIRMED%"=="0" exit /b 0
 set "INSTALL_ATTEMPTED=1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://claude.ai/install.ps1' ^| iex"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://claude.ai/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Claude Code installation did not complete successfully.
 exit /b 0
 
@@ -171,7 +171,7 @@ echo Kimi Code also requires Git for Windows for normal use.
 call :confirm "Install Kimi Code now?"
 if "%CONFIRMED%"=="0" exit /b 0
 set "INSTALL_ATTEMPTED=1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://code.kimi.com/kimi-code/install.ps1' ^| iex"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://code.kimi.com/kimi-code/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Kimi Code installation did not complete successfully.
 exit /b 0
 
