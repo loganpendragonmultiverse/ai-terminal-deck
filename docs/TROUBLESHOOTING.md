@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Codex opens before Claude or Kimi setup finishes
+
+The official Codex installer has its own optional “Start Codex now?” prompt. Version 1.0.3 and newer suppresses that internal launch prompt, collects every AI Terminal Deck installation choice first, finishes all selected installers, and asks once before opening any panes.
+
 ## An installer reports that `'^'` is an invalid argument
 
 This was a launcher quoting bug in version 1.0.1 and affected all three AI installers. Download version 1.0.2 or newer. The corrected installer commands no longer pass the batch escape character into PowerShell.

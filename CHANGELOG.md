@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## [1.0.3] - 2026-07-23
+
+### Fixed
+
+- Collect all missing-tool installation choices before executing any installer.
+- Run the official Codex installer with its supported `CODEX_NON_INTERACTIVE=1` mode so its internal “Start Codex now?” question cannot launch Codex and block Claude or Kimi setup.
+- Recheck all tools after the complete setup phase and require a final confirmation before opening the detected panes.
+
 ## [1.0.2] - 2026-07-23
 
 ### Fixed

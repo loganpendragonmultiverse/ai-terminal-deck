@@ -28,7 +28,9 @@ function Invoke-Launcher {
         [string[]]$Arguments,
         [string]$PathValue,
         [string]$DeckWorkdir,
-        [bool]$DryRun = $false
+        [bool]$DryRun = $false,
+        [object]$InputText = $null,
+        [bool]$InstallDryRun = $false
     )
 
     $savedPath = $env:PATH
@@ -36,13 +38,20 @@ function Invoke-Launcher {
     $savedDryRun = $env:AI_TERMINAL_DECK_DRY_RUN
     $savedNoPause = $env:AI_TERMINAL_DECK_NO_PAUSE
     $savedSkipPrompts = $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS
+    $savedInstallDryRun = $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN
     try {
         $env:PATH = $PathValue
         $env:AI_TERMINAL_DECK_WORKDIR = $DeckWorkdir
         $env:AI_TERMINAL_DECK_DRY_RUN = if ($DryRun) { "1" } else { $null }
         $env:AI_TERMINAL_DECK_NO_PAUSE = "1"
-        $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = "1"
-        $output = & "$env:SystemRoot\System32\cmd.exe" /d /c ('"{0}" {1}' -f $launcher, ($Arguments -join " ")) 2>&1
+        $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = if ($null -eq $InputText) { "1" } else { $null }
+        $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN = if ($InstallDryRun) { "1" } else { $null }
+        $commandLine = ('"{0}" {1}' -f $launcher, ($Arguments -join " "))
+        $output = if ($null -eq $InputText) {
+            & "$env:SystemRoot\System32\cmd.exe" /d /c $commandLine 2>&1
+        } else {
+            $InputText | & "$env:SystemRoot\System32\cmd.exe" /d /c $commandLine 2>&1
+        }
         return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($output -join "`n") }
     }
     finally {
@@ -51,6 +60,7 @@ function Invoke-Launcher {
         $env:AI_TERMINAL_DECK_DRY_RUN = $savedDryRun
         $env:AI_TERMINAL_DECK_NO_PAUSE = $savedNoPause
         $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = $savedSkipPrompts
+        $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN = $savedInstallDryRun
     }
 }
 
@@ -121,6 +131,23 @@ try {
         Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
     }
 
+    Invoke-Test "setup collects every choice before installing or launching" {
+        Remove-Item -LiteralPath (Join-Path $stubBin "claude.cmd"), (Join-Path $stubBin "kimi.cmd")
+        $responses = "Y`nY`nN"
+        $result = Invoke-Launcher -Arguments @() -PathValue $controlledPath -DeckWorkdir $workdir -InputText $responses -InstallDryRun $true
+        Assert-True ($result.ExitCode -eq 0) "Expected two-phase setup preview to exit 0, got $($result.ExitCode)."
+        $claudePrompt = $result.Output.IndexOf('Install Claude Code now?')
+        $kimiPrompt = $result.Output.IndexOf('Install Kimi Code now?')
+        $firstInstall = $result.Output.IndexOf('Installing Claude Code...')
+        $finalLaunchPrompt = $result.Output.IndexOf('Open the detected AI tools now?')
+        Assert-True ($claudePrompt -ge 0 -and $kimiPrompt -gt $claudePrompt) "Missing-tool choices were not collected in order."
+        Assert-True ($firstInstall -gt $kimiPrompt) "An installer started before every choice was collected."
+        Assert-True ($finalLaunchPrompt -gt $firstInstall) "Final launch confirmation did not wait for setup."
+        Assert-True ($result.Output -notmatch 'Opening \d+ installed AI CLI') "Declining final launch still opened an AI tool."
+        Set-Content -LiteralPath (Join-Path $stubBin "claude.cmd") -Value "@exit /b 0" -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
+    }
+
     Invoke-Test "invalid working directory is rejected" {
         $missingDirectory = Join-Path $testRoot "does-not-exist"
         $quotedMissingDirectory = '"' + $missingDirectory + '"'
@@ -139,10 +166,15 @@ try {
         Assert-True ($content -match 'choice /C YN') "Installers are not protected by an explicit yes/no prompt."
         Assert-True ($content -match 'if "%CHECK_ONLY%"=="1" goto :check_result') "Readiness-only mode could reach install prompts."
         Assert-True ($content -notmatch '\^\| iex') "A caret before the PowerShell pipe would be passed literally and break every installer."
-        $installerPattern = '(?m)^powershell\.exe .* -Command "irm ''https://[^'']+/install\.ps1'' \| iex"\r?$'
+        $installerPattern = '(?m)^powershell\.exe .* -Command ".*irm ''https://[^'']+/install\.ps1'' \| iex"\r?$'
         Assert-True (([regex]::Matches($content, $installerPattern)).Count -eq 3) "Expected three correctly parsed PowerShell installer commands."
         $crlfContent = $content -replace '(?<!\r)\n', "`r`n"
         Assert-True (([regex]::Matches($crlfContent, $installerPattern)).Count -eq 3) "Installer regression check must also pass after a CRLF checkout."
+        Assert-True ($content -match "CODEX_NON_INTERACTIVE='1'") "Codex installer could auto-launch and interrupt the setup sequence."
+        $lastOffer = $content.IndexOf('if "%KIMI_READY%"=="0" call :offer_kimi')
+        $firstInstall = $content.IndexOf('if "%INSTALL_WT%"=="1" call :install_windows_terminal')
+        Assert-True ($lastOffer -ge 0 -and $firstInstall -gt $lastOffer) "Install choices are not fully collected before setup begins."
+        Assert-True ($content -match 'call :confirm "Open the detected AI tools now\?"') "Setup does not require a final launch confirmation."
         Assert-True ($content -notmatch '(?i)(remove-item|del\s|erase\s|rmdir\s|rd\s)') "Launcher unexpectedly deletes files."
     }
 }

@@ -1,9 +1,13 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 
-set "AI_TERMINAL_DECK_VERSION=1.0.2"
+set "AI_TERMINAL_DECK_VERSION=1.0.3"
 set "CHECK_ONLY=0"
 set "INSTALL_ATTEMPTED=0"
+set "INSTALL_WT=0"
+set "INSTALL_CODEX=0"
+set "INSTALL_CLAUDE=0"
+set "INSTALL_KIMI=0"
 
 if /I "%~1"=="--help" goto :help
 if /I "%~1"=="-h" goto :help
@@ -39,10 +43,17 @@ if "%CODEX_READY%"=="0" call :offer_codex
 if "%CLAUDE_READY%"=="0" call :offer_claude
 if "%KIMI_READY%"=="0" call :offer_kimi
 
+if "%INSTALL_WT%"=="1" call :install_windows_terminal
+if "%INSTALL_CODEX%"=="1" call :install_codex
+if "%INSTALL_CLAUDE%"=="1" call :install_claude
+if "%INSTALL_KIMI%"=="1" call :install_kimi
+
 if "%INSTALL_ATTEMPTED%"=="1" (
     echo.
-    echo Refreshing this launcher's PATH and checking again...
-    call :refresh_path
+    if /I not "%AI_TERMINAL_DECK_INSTALL_DRY_RUN%"=="1" (
+        echo Refreshing this launcher's PATH and checking again...
+        call :refresh_path
+    )
     call :detect_tools
 )
 
@@ -63,10 +74,20 @@ if "%TOOL_COUNT%"=="0" (
     exit /b 3
 )
 
+set "LAUNCH_APPROVED=1"
+if "%INSTALL_ATTEMPTED%"=="1" call :confirm_after_setup
+if "%LAUNCH_APPROVED%"=="0" goto :setup_complete_without_launch
+
 echo.
 echo Opening %TOOL_COUNT% installed AI CLI pane^(s^) in Windows Terminal...
 if /I "%AI_TERMINAL_DECK_DRY_RUN%"=="1" goto :dry_run
 goto :launch
+
+:setup_complete_without_launch
+echo.
+echo Setup is complete. Run AI Terminal Deck again whenever you are ready.
+call :wait_to_close
+exit /b 0
 
 :check_result
 if "%WT_READY%"=="1" if "%CODEX_READY%"=="1" if "%CLAUDE_READY%"=="1" if "%KIMI_READY%"=="1" (
@@ -128,12 +149,22 @@ echo Windows Terminal is missing.
 echo Installer: Microsoft winget package Microsoft.WindowsTerminal
 call :confirm "Install Windows Terminal now?"
 if "%CONFIRMED%"=="0" exit /b 0
+set "INSTALL_WT=1"
+exit /b 0
+
+:install_windows_terminal
+echo.
+echo Installing Windows Terminal...
+set "INSTALL_ATTEMPTED=1"
+if /I "%AI_TERMINAL_DECK_INSTALL_DRY_RUN%"=="1" (
+    echo [INSTALL DRY RUN] Windows Terminal installer queued successfully.
+    exit /b 0
+)
 where winget >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] winget is unavailable. Install Windows Terminal from Microsoft Store.
     exit /b 0
 )
-set "INSTALL_ATTEMPTED=1"
 winget install --id Microsoft.WindowsTerminal -e --accept-source-agreements --accept-package-agreements
 if errorlevel 1 echo [WARNING] Windows Terminal installation did not complete successfully.
 exit /b 0
@@ -145,8 +176,18 @@ echo Codex CLI is missing.
 echo Official installer: https://chatgpt.com/codex/install.ps1
 call :confirm "Install Codex CLI now?"
 if "%CONFIRMED%"=="0" exit /b 0
+set "INSTALL_CODEX=1"
+exit /b 0
+
+:install_codex
+echo.
+echo Installing Codex CLI...
 set "INSTALL_ATTEMPTED=1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://chatgpt.com/codex/install.ps1' | iex"
+if /I "%AI_TERMINAL_DECK_INSTALL_DRY_RUN%"=="1" (
+    echo [INSTALL DRY RUN] Codex CLI installer queued successfully.
+    exit /b 0
+)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$env:CODEX_NON_INTERACTIVE='1'; irm 'https://chatgpt.com/codex/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Codex CLI installation did not complete successfully.
 exit /b 0
 
@@ -157,7 +198,17 @@ echo Claude Code is missing.
 echo Official installer: https://claude.ai/install.ps1
 call :confirm "Install Claude Code now?"
 if "%CONFIRMED%"=="0" exit /b 0
+set "INSTALL_CLAUDE=1"
+exit /b 0
+
+:install_claude
+echo.
+echo Installing Claude Code...
 set "INSTALL_ATTEMPTED=1"
+if /I "%AI_TERMINAL_DECK_INSTALL_DRY_RUN%"=="1" (
+    echo [INSTALL DRY RUN] Claude Code installer queued successfully.
+    exit /b 0
+)
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://claude.ai/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Claude Code installation did not complete successfully.
 exit /b 0
@@ -170,7 +221,17 @@ echo Official installer: https://code.kimi.com/kimi-code/install.ps1
 echo Kimi Code also requires Git for Windows for normal use.
 call :confirm "Install Kimi Code now?"
 if "%CONFIRMED%"=="0" exit /b 0
+set "INSTALL_KIMI=1"
+exit /b 0
+
+:install_kimi
+echo.
+echo Installing Kimi Code...
 set "INSTALL_ATTEMPTED=1"
+if /I "%AI_TERMINAL_DECK_INSTALL_DRY_RUN%"=="1" (
+    echo [INSTALL DRY RUN] Kimi Code installer queued successfully.
+    exit /b 0
+)
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://code.kimi.com/kimi-code/install.ps1' | iex"
 if errorlevel 1 echo [WARNING] Kimi Code installation did not complete successfully.
 exit /b 0
@@ -180,6 +241,13 @@ set "CONFIRMED=0"
 choice /C YN /N /M "%~1 [Y/N] "
 if errorlevel 2 exit /b 0
 if errorlevel 1 set "CONFIRMED=1"
+exit /b 0
+
+:confirm_after_setup
+echo.
+echo Setup phase complete. All selected installers have finished.
+call :confirm "Open the detected AI tools now?"
+set "LAUNCH_APPROVED=%CONFIRMED%"
 exit /b 0
 
 :refresh_path
@@ -230,6 +298,8 @@ echo   Launch-AI-Terminal-Deck.bat --help
 echo.
 echo --check reports readiness without prompting to install or opening panes.
 echo Every installation requires an explicit Y response.
+echo All install choices are collected before setup begins. Codex installation
+echo cannot auto-launch Codex and interrupt the remaining setup sequence.
 echo Authentication remains inside each provider's CLI after it opens.
 echo Startup errors remain visible until you press a key.
 exit /b 0
