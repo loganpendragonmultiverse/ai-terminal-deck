@@ -119,3 +119,7 @@ The project is maintained as a focused Windows utility. Bug fixes, accessibility
 ## License
 
 MIT License. Copyright 2026 Logan Pendragon Multiverse.
+
+## More open-source projects
+
+This project is part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Browse the catalog for other released tools, source repositories, live demos, and downloads.
