@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Release status:** 1.0.3, uninterrupted two-phase setup hotfix.
+**Release status:** 1.0.4, official-install-path detection hotfix.
 
 ## Three-minute setup
 
@@ -47,7 +47,19 @@ The default double-click flow can offer these official Windows installers:
 - Kimi Code: `https://code.kimi.com/kimi-code/install.ps1`
 - Windows Terminal, when needed: Microsoft package `Microsoft.WindowsTerminal` through `winget`
 
-The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal “Start Codex now?” prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
+The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal "Start Codex now?" prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
+
+The launcher also recognizes each publisher's official Windows install folder. In particular, Claude may install to `%USERPROFILE%\.local\bin` without registering that folder in `PATH`; AI Terminal Deck activates it for the current run and adds that exact folder to the user `PATH` so future terminals can run `claude` directly.
+
+## Accounts and login
+
+AI Terminal Deck does not log in, copy credentials, or connect provider accounts. Each CLI owns its authentication:
+
+- Codex offers ChatGPT subscription login or OpenAI API-key setup and reuses valid Codex authentication already stored for the Windows user.
+- Claude opens its own browser login on first launch and supports Claude.ai Pro, Max, Team, Enterprise, Console, or configured enterprise cloud providers.
+- Kimi starts unconfigured until `/login` connects a Kimi Code account or `/provider` configures another supported provider.
+
+Saved credentials remain provider-specific. Logging into one pane never logs into either of the others.
 
 ## Choose the working directory
 
@@ -64,6 +76,8 @@ For a persistent personal default:
 ```
 
 Open a new terminal after changing a user environment variable.
+
+This is a starting directory, not a filesystem sandbox. Each CLI can navigate to another folder or use an absolute path when its own permission mode allows it. AI Terminal Deck does not grant extra access; review each tool's approval or autonomous-access setting. For the narrowest scope, launch the BAT with a specific project folder and avoid unrestricted modes when they are unnecessary.
 
 ## Privacy and safety
 

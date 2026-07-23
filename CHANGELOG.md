@@ -2,6 +2,19 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## [1.0.4] - 2026-07-23
+
+### Fixed
+
+- Recognize Claude Code at its official Windows location, `%USERPROFILE%\.local\bin\claude.exe`, even when the upstream installer does not update `PATH`.
+- Activate known official Codex, Claude, and Kimi install folders before every detection pass.
+- Add Claude's verified official install folder to the user `PATH` so new terminals can invoke `claude` directly.
+
+### Documented
+
+- Clarify provider-specific login behavior and that AI Terminal Deck never shares credentials.
+- Clarify that the selected working directory is a starting folder, not a filesystem sandbox.
+
 ## [1.0.3] - 2026-07-23
 
 ### Fixed
