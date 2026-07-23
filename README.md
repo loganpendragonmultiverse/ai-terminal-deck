@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Release status:** 1.0.2, guided-installer command hotfix.
+**Release status:** 1.0.3, uninterrupted two-phase setup hotfix.
 
 ## Three-minute setup
 
@@ -18,7 +18,7 @@ Download `Launch-AI-Terminal-Deck.bat` from the [latest release](https://github.
 Launch-AI-Terminal-Deck.bat --check
 ```
 
-Double-click the file. It checks Windows Terminal and all three AI CLIs, offers to install each missing component from its official publisher, rechecks the results, and then opens every available AI tool in `%USERPROFILE%\Documents`. Every installation requires a separate `Y` response; declining is allowed.
+Double-click the file. It checks Windows Terminal and all three AI CLIs, collects your choices for every missing component, and only then runs the selected official installers one at a time. After rechecking the results, it shows a final confirmation before opening every available AI tool in `%USERPROFILE%\Documents`. Every installation requires a separate `Y` response; declining is allowed.
 
 To use a specific project folder:
 
@@ -47,7 +47,7 @@ The default double-click flow can offer these official Windows installers:
 - Kimi Code: `https://code.kimi.com/kimi-code/install.ps1`
 - Windows Terminal, when needed: Microsoft package `Microsoft.WindowsTerminal` through `winget`
 
-The source is printed before every prompt. Nothing is installed unless the user answers `Y`. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
+The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal “Start Codex now?” prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
 
 ## Choose the working directory
 
