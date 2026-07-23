@@ -39,6 +39,7 @@ function Invoke-Launcher {
     $savedNoPause = $env:AI_TERMINAL_DECK_NO_PAUSE
     $savedSkipPrompts = $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS
     $savedInstallDryRun = $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN
+    $savedSkipKnownPaths = $env:AI_TERMINAL_DECK_SKIP_KNOWN_PATHS
     try {
         $env:PATH = $PathValue
         $env:AI_TERMINAL_DECK_WORKDIR = $DeckWorkdir
@@ -46,6 +47,7 @@ function Invoke-Launcher {
         $env:AI_TERMINAL_DECK_NO_PAUSE = "1"
         $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = if ($null -eq $InputText) { "1" } else { $null }
         $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN = if ($InstallDryRun) { "1" } else { $null }
+        $env:AI_TERMINAL_DECK_SKIP_KNOWN_PATHS = "1"
         $commandLine = ('"{0}" {1}' -f $launcher, ($Arguments -join " "))
         $output = if ($null -eq $InputText) {
             & "$env:SystemRoot\System32\cmd.exe" /d /c $commandLine 2>&1
@@ -61,6 +63,7 @@ function Invoke-Launcher {
         $env:AI_TERMINAL_DECK_NO_PAUSE = $savedNoPause
         $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = $savedSkipPrompts
         $env:AI_TERMINAL_DECK_INSTALL_DRY_RUN = $savedInstallDryRun
+        $env:AI_TERMINAL_DECK_SKIP_KNOWN_PATHS = $savedSkipKnownPaths
     }
 }
 
@@ -171,6 +174,8 @@ try {
         $crlfContent = $content -replace '(?<!\r)\n', "`r`n"
         Assert-True (([regex]::Matches($crlfContent, $installerPattern)).Count -eq 3) "Installer regression check must also pass after a CRLF checkout."
         Assert-True ($content -match "CODEX_NON_INTERACTIVE='1'") "Codex installer could auto-launch and interrupt the setup sequence."
+        Assert-True ($content -match [regex]::Escape('%USERPROFILE%\.local\bin\claude.exe')) "Official Claude install fallback is missing."
+        Assert-True ($content -match 'call :activate_official_paths\s+echo Checking installed commands') "Official install paths are not activated before detection."
         $lastOffer = $content.IndexOf('if "%KIMI_READY%"=="0" call :offer_kimi')
         $firstInstall = $content.IndexOf('if "%INSTALL_WT%"=="1" call :install_windows_terminal')
         Assert-True ($lastOffer -ge 0 -and $firstInstall -gt $lastOffer) "Install choices are not fully collected before setup begins."

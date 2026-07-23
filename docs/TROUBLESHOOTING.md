@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Claude installed successfully but still appears missing
+
+Claude's native Windows installer can place `claude.exe` in `%USERPROFILE%\.local\bin` without adding that folder to `PATH`. Version 1.0.4 and newer recognizes the official location, activates it immediately, and adds the folder to the user `PATH` for future terminals.
+
 ## Codex opens before Claude or Kimi setup finishes
 
 The official Codex installer has its own optional “Start Codex now?” prompt. Version 1.0.3 and newer suppresses that internal launch prompt, collects every AI Terminal Deck installation choice first, finishes all selected installers, and asks once before opening any panes.

@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 
-set "AI_TERMINAL_DECK_VERSION=1.0.3"
+set "AI_TERMINAL_DECK_VERSION=1.0.4"
 set "CHECK_ONLY=0"
 set "INSTALL_ATTEMPTED=0"
 set "INSTALL_WT=0"
@@ -124,11 +124,22 @@ if "%TOOL_COUNT%"=="3" echo wt.exe -w new -M new-tab --title "%FIRST_TITLE%" --s
 exit /b 0
 
 :detect_tools
+call :activate_official_paths
 echo Checking installed commands...
 call :detect wt.exe WT_READY "Windows Terminal"
 call :detect codex CODEX_READY "Codex CLI"
 call :detect claude CLAUDE_READY "Claude Code"
 call :detect kimi KIMI_READY "Kimi Code"
+exit /b 0
+
+:activate_official_paths
+if /I "%AI_TERMINAL_DECK_SKIP_KNOWN_PATHS%"=="1" exit /b 0
+if exist "%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe" set "PATH=%LOCALAPPDATA%\Programs\OpenAI\Codex\bin;%PATH%"
+if exist "%USERPROFILE%\.kimi-code\bin\kimi.exe" set "PATH=%USERPROFILE%\.kimi-code\bin;%PATH%"
+if exist "%USERPROFILE%\.local\bin\claude.exe" (
+    set "PATH=%USERPROFILE%\.local\bin;%PATH%"
+    powershell.exe -NoProfile -Command "$entry=[IO.Path]::GetFullPath('%USERPROFILE%\.local\bin'); $userPath=[Environment]::GetEnvironmentVariable('Path','User'); $parts=@($userPath -split ';' | Where-Object { $_ }); if (-not ($parts | Where-Object { $_.TrimEnd('\') -ieq $entry.TrimEnd('\') })) { [Environment]::SetEnvironmentVariable('Path', (($parts + $entry) -join ';'), 'User') }"
+)
 exit /b 0
 
 :detect
@@ -300,6 +311,8 @@ echo --check reports readiness without prompting to install or opening panes.
 echo Every installation requires an explicit Y response.
 echo All install choices are collected before setup begins. Codex installation
 echo cannot auto-launch Codex and interrupt the remaining setup sequence.
+echo Official install folders are activated automatically when an installer
+echo has not yet added its command to PATH.
 echo Authentication remains inside each provider's CLI after it opens.
 echo Startup errors remain visible until you press a key.
 exit /b 0
