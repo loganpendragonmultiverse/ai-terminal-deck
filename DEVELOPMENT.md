@@ -1,5 +1,7 @@
 # Development record
 
+Version 1.0.2 corrects the three PowerShell installer command lines. A caret used to escape the pipe was unnecessary inside the quoted `-Command` argument and reached PowerShell as a literal positional argument. Regression tests now reject `^| iex` and require all three allowlisted installer commands to use a directly parsed `| iex` pipeline.
+
 Version 1.0.1 fixes Explorer double-click error visibility and adds guided setup with adaptive layouts. Startup failures now display a clear keypress prompt before the temporary console closes. Missing components receive individual yes/no prompts that identify the official installer source; declined or unsuccessful tools are omitted. The launcher refreshes its process `PATH`, detects the resulting availability, and opens one, two, or three panes.
 
 Automated tests suppress the interactive pause through `AI_TERMINAL_DECK_NO_PAUSE=1`, suppress installer prompts through `AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS=1`, and preview terminal commands through `AI_TERMINAL_DECK_DRY_RUN=1`. These variables are internal verification seams and do not change ordinary use.

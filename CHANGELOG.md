@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## [1.0.2] - 2026-07-23
+
+### Fixed
+
+- Remove a batch escape character that was passed literally into PowerShell and caused every consented Codex, Claude, and Kimi installer to fail with `A positional parameter cannot be found that accepts argument '^'`.
+- Add regression coverage for the exact installer command parsing failure.
+
 ## [1.0.1] - 2026-07-23
 
 ### Fixed

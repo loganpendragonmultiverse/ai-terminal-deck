@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Release status:** 1.0.1, guided-setup and adaptive-layout hotfix.
+**Release status:** 1.0.2, guided-installer command hotfix.
 
 ## Three-minute setup
 
