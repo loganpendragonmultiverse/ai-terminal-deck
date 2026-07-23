@@ -1,0 +1,23 @@
+name: Security checks
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+  schedule:
+    - cron: "19 8 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  launcher-safety:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify launcher safety boundaries
+        shell: pwsh
+        run: ./tests/Test-AITerminalDeck.ps1
+      - name: Inspect tracked files for accidental credentials
+        shell: pwsh
+        run: |
+          $findings = git grep -n -I -E '(ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})' -- . ':!tests/Test-AITerminalDeck.ps1'
+          if ($LASTEXITCODE -eq 0) { throw "Possible credential material found:`n$findings" }
+          if ($LASTEXITCODE -gt 1) { throw "git grep failed with exit code $LASTEXITCODE" }

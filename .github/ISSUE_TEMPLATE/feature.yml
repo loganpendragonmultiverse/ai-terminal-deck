@@ -1,0 +1,13 @@
+name: Feature request
+description: Propose a focused launcher improvement
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: Problem, description: Which concrete Windows terminal workflow is unsupported? }
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes: { label: Proposed scope, description: Explain how the change preserves a small auditable launcher and safe defaults. }
+    validations: { required: true }

@@ -1,0 +1,25 @@
+name: Release build
+on:
+  push: { tags: ["v*"] }
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run launcher behavior tests
+        shell: pwsh
+        run: ./tests/Test-AITerminalDeck.ps1
+      - name: Build release artifacts
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          ./scripts/package.ps1 -Version $version
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ai-terminal-deck-${{ github.ref_name }}
+          path: |
+            dist/Launch-AI-Terminal-Deck.bat
+            dist/ai-terminal-deck-*.zip
+            dist/SHA256SUMS.txt

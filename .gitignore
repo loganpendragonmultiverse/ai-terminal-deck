@@ -1,0 +1,6 @@
+/dist/
+/.release-readiness/
+/.placeholder-scan/
+/.env
+/.env.*
+!/.env.example
