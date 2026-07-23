@@ -116,3 +116,4 @@ finally {
 Write-Host ""
 Write-Host "$script:passed passed, $script:failed failed"
 if ($script:failed -gt 0) { exit 1 }
+exit 0
