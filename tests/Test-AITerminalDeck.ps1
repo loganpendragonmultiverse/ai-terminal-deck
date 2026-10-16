@@ -110,7 +110,7 @@ try {
         $result = Invoke-Launcher -Arguments @("--check") -PathValue $controlledPath -DeckWorkdir $workdir
         Assert-True ($result.ExitCode -eq 3) "Expected missing dependency exit 3, got $($result.ExitCode)."
         Assert-True ($result.Output -match '\[MISSING\] Kimi Code') "Missing Kimi message was not shown."
-        Assert-True ($result.Output -match 'Press any key to close this window') "Double-click failure would close without a visible pause."
+        Assert-True ($result.Output -notmatch 'Press any key') "Readiness must not pause."
         Set-Content -LiteralPath (Join-Path $stubBin "kimi.cmd") -Value "@exit /b 0" -Encoding ascii
     }
 
@@ -157,7 +157,7 @@ try {
         $result = Invoke-Launcher -Arguments @("--check", $quotedMissingDirectory) -PathValue $controlledPath -DeckWorkdir ""
         Assert-True ($result.ExitCode -eq 2) "Expected invalid-directory exit 2, got $($result.ExitCode)."
         Assert-True ($result.Output -match "working directory does not exist") "Invalid-directory explanation is missing."
-        Assert-True ($result.Output -match 'Press any key to close this window') "Invalid-directory failure would close without a visible pause."
+        Assert-True ($result.Output -notmatch 'Press any key') "Readiness must not pause on an invalid directory."
     }
 
     Invoke-Test "guided installers are consent-gated and use official sources" {
@@ -184,10 +184,13 @@ try {
     }
 }
 finally {
+    $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd("\") + "\"
+    if (-not ([IO.Path]::GetFullPath($testRoot).StartsWith($temp, [StringComparison]::OrdinalIgnoreCase))) { throw "Unsafe cleanup path" }
     if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force }
 }
 
 Write-Host ""
+& (Join-Path $PSScriptRoot "Test-ReadOnlyCheck.ps1")
 Write-Host "$script:passed passed, $script:failed failed"
 if ($script:failed -gt 0) { exit 1 }
 exit 0

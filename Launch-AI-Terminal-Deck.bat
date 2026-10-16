@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 
-set "AI_TERMINAL_DECK_VERSION=1.0.4"
+set "AI_TERMINAL_DECK_VERSION=1.0.5"
 set "CHECK_ONLY=0"
 set "INSTALL_ATTEMPTED=0"
 set "INSTALL_WT=0"
@@ -138,7 +138,6 @@ if exist "%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe" set "PATH=%LOCALAP
 if exist "%USERPROFILE%\.kimi-code\bin\kimi.exe" set "PATH=%USERPROFILE%\.kimi-code\bin;%PATH%"
 if exist "%USERPROFILE%\.local\bin\claude.exe" (
     set "PATH=%USERPROFILE%\.local\bin;%PATH%"
-    powershell.exe -NoProfile -Command "$entry=[IO.Path]::GetFullPath('%USERPROFILE%\.local\bin'); $userPath=[Environment]::GetEnvironmentVariable('Path','User'); $parts=@($userPath -split ';' | Where-Object { $_ }); if (-not ($parts | Where-Object { $_.TrimEnd('\') -ieq $entry.TrimEnd('\') })) { [Environment]::SetEnvironmentVariable('Path', (($parts + $entry) -join ';'), 'User') }"
 )
 exit /b 0
 
@@ -289,6 +288,7 @@ if "%TOOL_COUNT%"=="3" (
 exit /b 0
 
 :wait_to_close
+if "%CHECK_ONLY%"=="1" exit /b 0
 echo.
 echo Press any key to close this window.
 if /I "%AI_TERMINAL_DECK_NO_PAUSE%"=="1" exit /b 0
