@@ -17,3 +17,7 @@ The launcher installs nothing silently or without a separate affirmative respons
 Windows Terminal is the layout engine. PowerShell hosts each AI process with `-NoExit` so authentication or startup errors remain visible after a CLI exits. The launcher supplies a common working directory but warns users not to allow concurrent writes in one checkout.
 
 CodeQL does not analyze Windows batch files. The repository therefore uses Windows-native behavior tests, release artifact hashing, secret-pattern checks, destructive-command checks, official-installer allowlist checks, and GitHub secret scanning as the language-appropriate security verification.
+
+## 1.0.5 — 2026-10-16
+
+Official install-folder discovery now changes only the launcher's process PATH. Readiness checks never persist user or machine environment settings, prompt, install, or launch tools, including missing-tool and invalid-directory paths. Persistent PATH repair has been removed; users can configure their environment separately if they want a permanent change. Synthetic Windows fixtures intercept every PowerShell environment/installer/launch operation and use fake official install folders.

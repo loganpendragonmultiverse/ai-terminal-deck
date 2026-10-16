@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Release status:** 1.0.4, official-install-path detection hotfix.
+**Release status:** 1.0.5, read-only readiness checks.
 
 ## Three-minute setup
 
@@ -49,7 +49,7 @@ The default double-click flow can offer these official Windows installers:
 
 The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal "Start Codex now?" prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
 
-The launcher also recognizes each publisher's official Windows install folder. In particular, Claude may install to `%USERPROFILE%\.local\bin` without registering that folder in `PATH`; AI Terminal Deck activates it for the current run and adds that exact folder to the user `PATH` so future terminals can run `claude` directly.
+The launcher also recognizes each publisher's official Windows install folder. In particular, Claude may install to `%USERPROFILE%\.local\bin` without registering that folder in `PATH`; AI Terminal Deck activates it only inside the launcher's process. It never persists changes to the user or machine `PATH`.
 
 ## Accounts and login
 
