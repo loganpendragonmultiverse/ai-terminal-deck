@@ -22,7 +22,7 @@ CodeQL does not analyze Windows batch files. The repository therefore uses Windo
 
 Official install-folder discovery now changes only the launcher's process PATH. Readiness checks never persist user or machine environment settings, prompt, install, or launch tools, including missing-tool and invalid-directory paths. Persistent PATH repair has been removed; users can configure their environment separately if they want a permanent change. Synthetic Windows fixtures intercept every PowerShell environment/installer/launch operation and use fake official install folders.
 
-## 1.1.0 candidate — 2026-10-21
+## 1.1.0 — command binding and preview
 
 Add a public non-interactive `--preview` mode and report the exact discovered paths. Bind each pane to that path instead of asking a different shell to search again. Search explicit process PATH entries rather than the implicit current directory; retain process-specific PATH entries after consented installation. Carry literal paths through process environment variables and set the pane location with `Set-Location -LiteralPath` before invoking its bound command. No user/machine environment writes, provider installation without consent, credentials, or orchestration are added.
 

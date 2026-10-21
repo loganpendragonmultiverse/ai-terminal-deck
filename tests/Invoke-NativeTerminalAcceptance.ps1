@@ -39,7 +39,7 @@ $markers = Join-Path $task 'markers'
 New-Item -ItemType Directory -Path $bin,$workdir,$markers | Out-Null
 $id = [IO.Path]::GetFileName($task)
 if ($id -notmatch '^[a-zA-Z0-9_-]+$') { throw 'Use only letters, digits, underscore or hyphen in the task directory basename.' }
-$selected = @('codex','claude','kimi')[0..($ToolCount - 1)]
+$selected = @(@('codex','claude','kimi')[0..($ToolCount - 1)])
 foreach ($name in $selected) {
     $body = '@echo AI Terminal Deck INERT acceptance %DECK_ACCEPTANCE_ID% ' + $name + "`r`n" + '@echo marker:' + $name + '> "%DECK_ACCEPTANCE_MARKERS%\' + $name + '.txt"' + "`r`n" + '@cd >> "%DECK_ACCEPTANCE_MARKERS%\' + $name + '.txt"' + "`r`n@cd`r`n@exit /b 0`r`n"
     [IO.File]::WriteAllText((Join-Path $bin ($name + '.cmd')), $body)

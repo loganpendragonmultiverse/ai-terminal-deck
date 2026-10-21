@@ -74,7 +74,36 @@ try {
             Require ($lines[1] -eq $workdir) "The $name pane received the wrong literal working directory: $($lines[1])"
         }
         Require (-not (Test-Path -LiteralPath (Join-Path $markerDir 'WRONG.txt'))) 'A current-directory command shadowed PATH discovery.'
-        Write-Host 'PASS native cmd/Windows PowerShell binding: exact commands, literal paths, three panes; terminal itself remains a fixture'
+        $env:AI_TERMINAL_DECK_SKIP_INSTALL_PROMPTS = '1'
+        $combinations = @(@('codex'), @('claude'), @('kimi'), @('codex','claude'), @('codex','kimi'), @('claude','kimi'))
+        $caseIndex = 0
+        foreach ($selectedTools in $combinations) {
+            $caseIndex++
+            foreach ($name in @('codex','claude','kimi')) {
+                $active = Join-Path $bin ($name + '.cmd'); $held = Join-Path $testRoot ($name + '.held')
+                if ($selectedTools -contains $name) {
+                    if (Test-Path -LiteralPath $held) { Move-Item -LiteralPath $held -Destination $active }
+                } elseif (Test-Path -LiteralPath $active) { Move-Item -LiteralPath $active -Destination $held }
+            }
+            $caseCapture = Join-Path $testRoot ("capture-$caseIndex.log")
+            $caseMarkers = Join-Path $testRoot ("markers-$caseIndex")
+            New-Item -ItemType Directory -Path $caseMarkers | Out-Null
+            $env:AI_TERMINAL_DECK_TEST_CAPTURE = $caseCapture
+            $env:AI_TERMINAL_DECK_TEST_MARKERS = $caseMarkers
+            $caseOutput = & "$env:SystemRoot\System32\cmd.exe" /d /s /c ('""' + $launcher + '""') 2>&1
+            Require ($LASTEXITCODE -eq 0) "Subset launch failed: $selectedTools / $caseOutput"
+            $deadline = [DateTime]::UtcNow.AddSeconds(30)
+            while (-not (Test-Path -LiteralPath $caseCapture) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 200 }
+            $caseRecord = @(Get-Content -LiteralPath $caseCapture)
+            Require ($caseRecord -contains ('PANES:' + @($selectedTools).Count)) "Wrong pane count for $selectedTools"
+            Require (@($caseRecord | Where-Object { $_ -like 'EXIT:*' -and $_ -ne 'EXIT:0' }).Count -eq 0) "A real PowerShell subset command failed: $caseRecord"
+            foreach ($name in $selectedTools) {
+                $lines = @(Get-Content -LiteralPath (Join-Path $caseMarkers ($name + '.txt')))
+                Require ($lines[0] -eq ('marker:' + $name) -and $lines[1] -eq $workdir) "Wrong marker/directory for $name"
+            }
+            Require (@(Get-ChildItem -LiteralPath $caseMarkers).Count -eq @($selectedTools).Count) 'An unselected/current-directory tool executed.'
+        }
+        Write-Host 'PASS native cmd/Windows PowerShell binding: exact commands, literal paths, all seven non-empty tool selections; terminal itself remains a fixture'
     } finally { Pop-Location }
     Require ([Environment]::GetEnvironmentVariable('PATH','User') -eq $userPathBefore) 'User PATH was changed.'
     Require ([Environment]::GetEnvironmentVariable('PATH','Machine') -eq $machinePathBefore) 'Machine PATH was changed.'

@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Candidate status:** 1.1.0, exact command binding and non-interactive preview. Publication and Gold qualification require the documented native acceptance gates.
+**Version:** 1.1.0, exact command binding and non-interactive preview. Published builds are listed in [GitHub Releases](https://github.com/loganpendragonmultiverse/ai-terminal-deck/releases); development builds require all documented acceptance gates before publication.
 
 ## Three-minute setup
 
@@ -58,9 +58,7 @@ The launcher also recognizes each publisher's official Windows install folder. I
 
 AI Terminal Deck does not log in, copy credentials, or connect provider accounts. Each CLI owns its authentication:
 
-- Codex offers ChatGPT subscription login or OpenAI API-key setup and reuses valid Codex authentication already stored for the Windows user.
-- Claude opens its own browser login on first launch and supports Claude.ai Pro, Max, Team, Enterprise, Console, or configured enterprise cloud providers.
-- Kimi starts unconfigured until `/login` connects a Kimi Code account or `/provider` configures another supported provider.
+Codex, Claude and Kimi each manage their own supported authentication and account requirements. Follow the publisher documentation inside the chosen CLI. This launcher does not inspect credentials or sign in.
 
 Saved credentials remain provider-specific. Logging into one pane never logs into either of the others.
 

@@ -8,7 +8,7 @@ Verify the packaged ZIP includes README.md, CHANGELOG.md, DEVELOPMENT.md and TES
 
 ## 1.1.0 native command-binding regression
 
-The full suite invokes `tests/Test-NativeCommandBinding.ps1`. It compiles a temporary .NET Framework capture executable as `wt.exe`, creates inert `.cmd` markers, and executes the launcher through actual Windows cmd and Windows PowerShell. Assertions cover exact PATH binding despite current-directory shadow commands, punctuation/space/literal-percent working directories, three delivered pane commands, process-only PATH behavior, and public preview without prompts or side effects. This does not qualify the actual Windows Terminal UI. No provider executables, installations or authentication are used.
+The full suite invokes `tests/Test-NativeCommandBinding.ps1`. It compiles a temporary .NET Framework capture executable as `wt.exe`, creates inert `.cmd` markers, and executes the launcher through actual Windows cmd and Windows PowerShell. Assertions cover exact PATH binding despite current-directory shadow commands, punctuation/space/literal-percent working directories, all seven non-empty tool selections with delivered pane commands, process-only PATH behavior, and public preview without prompts or side effects. This does not qualify the actual Windows Terminal UI. No provider executables, installations or authentication are used.
 
 ## Required native Windows Terminal acceptance
 

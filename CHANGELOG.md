@@ -2,7 +2,7 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
-## [1.1.0] - Unreleased candidate
+## [1.1.0]
 
 - Add public, non-interactive layout preview with exact discovered command paths.
 - Bind pane commands to supported PATH files and ignore implicit current-directory matches.

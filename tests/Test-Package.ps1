@@ -1,5 +1,6 @@
 param([string]$ArtifactDirectory, [switch]$VerifyOnly)
 $ErrorActionPreference = 'Stop'
+if ($ArtifactDirectory -and -not $VerifyOnly) { throw 'External artifact directories require -VerifyOnly.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = Split-Path -Parent $PSScriptRoot
 $launcher = Join-Path $root 'Launch-AI-Terminal-Deck.bat'
@@ -17,6 +18,11 @@ try {
         if ($null -eq $entry) { throw "Missing packaged guidance/source: $relative" }
         $stream = $entry.Open(); $memory = New-Object IO.MemoryStream
         try { $stream.CopyTo($memory); $bytes = $memory.ToArray() } finally { $stream.Dispose(); $memory.Dispose() }
+        if ($relative.EndsWith('.ps1')) {
+            $parseTokens = $null; $parseErrors = $null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $root $relative), [ref]$parseTokens, [ref]$parseErrors)
+            if (@($parseErrors).Count -gt 0) { throw "Packaged PowerShell script cannot parse: $relative / $parseErrors" }
+        }
         $expected = [IO.File]::ReadAllBytes((Join-Path $root $relative))
         if ([Convert]::ToBase64String($bytes) -ne [Convert]::ToBase64String($expected)) { throw "Packaged bytes differ: $relative" }
     }
@@ -40,4 +46,4 @@ foreach ($requestedVersion in @($version,'0.0.0')) {
 foreach ($path in $before.Keys) {
     if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $before[$path]) { throw "Refused packaging modified an artifact: $path" }
 }
-Write-Host "PASS packaged launcher, complete guidance/tests, checksums and refusal safety ($version)"
+Write-Host "PASS packaged launcher, complete guidance/tests and checksums ($version); refusal checks executed: $(-not $VerifyOnly)"
