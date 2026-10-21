@@ -2,7 +2,7 @@
 
 AI Terminal Deck detects Codex CLI, Claude Code, and Kimi Code, offers consent-based guided installation for anything missing, and opens the available tools together in one maximized Windows Terminal window. It is a single, reviewable batch file for people who want independent access to multiple AI coding agents without installing another dashboard or orchestration service.
 
-**Release status:** 1.0.5, read-only readiness checks.
+**Version:** 1.1.0, exact command binding and non-interactive preview. Published builds are listed in [GitHub Releases](https://github.com/loganpendragonmultiverse/ai-terminal-deck/releases); development builds require all documented acceptance gates before publication.
 
 ## Three-minute setup
 
@@ -16,6 +16,7 @@ Download `Launch-AI-Terminal-Deck.bat` from the [latest release](https://github.
 
 ```console
 Launch-AI-Terminal-Deck.bat --check
+Launch-AI-Terminal-Deck.bat --preview "C:\Projects\My Project"
 ```
 
 Double-click the file. It checks Windows Terminal and all three AI CLIs, collects your choices for every missing component, and only then runs the selected official installers one at a time. After rechecking the results, it shows a final confirmation before opening every available AI tool in `%USERPROFILE%\Documents`. Every installation requires a separate `Y` response; declining is allowed.
@@ -47,7 +48,9 @@ The default double-click flow can offer these official Windows installers:
 - Kimi Code: `https://code.kimi.com/kimi-code/install.ps1`
 - Windows Terminal, when needed: Microsoft package `Microsoft.WindowsTerminal` through `winget`
 
-The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal "Start Codex now?" prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
+The source is printed before every prompt. Nothing is installed unless the user answers `Y`. All choices are collected before any installer starts. The Codex installer runs in its supported non-interactive mode so its optional internal "Start Codex now?" prompt cannot interrupt Claude and Kimi setup. After all selected installers return, the launcher rechecks availability and asks once before opening the panes. `--check` never prompts, installs, or launches. `--preview [folder]` also shows the exact discovered command paths and the available one-, two-, or three-pane layout without installation prompts, installers, or terminal/tool launches. Preview exits 0 for a usable layout (Windows Terminal plus at least one tool); readiness still requires all three tools and exits 3 when any dependency is missing. Invalid directories/extra arguments exit 2. Kimi Code also expects Git for Windows for normal project use; the launcher reports that dependency but does not install Git.
+
+Discovery considers `.exe`, `.cmd`, and `.bat` files in the process PATH plus the known folders below. It does not implicitly search the current working directory; a current-directory PATH entry remains an explicit caller choice. Each pane invokes the exact discovered path using Windows PowerShell without a user profile. Literal folder/command values travel in inherited process environment variables rather than being inserted into PowerShell source text. A PATH file is only discovered, not executed or authenticated, by readiness/preview.
 
 The launcher also recognizes each publisher's official Windows install folder. In particular, Claude may install to `%USERPROFILE%\.local\bin` without registering that folder in `PATH`; AI Terminal Deck activates it only inside the launcher's process. It never persists changes to the user or machine `PATH`.
 
@@ -55,9 +58,7 @@ The launcher also recognizes each publisher's official Windows install folder. I
 
 AI Terminal Deck does not log in, copy credentials, or connect provider accounts. Each CLI owns its authentication:
 
-- Codex offers ChatGPT subscription login or OpenAI API-key setup and reuses valid Codex authentication already stored for the Windows user.
-- Claude opens its own browser login on first launch and supports Claude.ai Pro, Max, Team, Enterprise, Console, or configured enterprise cloud providers.
-- Kimi starts unconfigured until `/login` connects a Kimi Code account or `/provider` configures another supported provider.
+Codex, Claude and Kimi each manage their own supported authentication and account requirements. Follow the publisher documentation inside the chosen CLI. This launcher does not inspect credentials or sign in.
 
 Saved credentials remain provider-specific. Logging into one pane never logs into either of the others.
 
@@ -98,7 +99,9 @@ All three agents receive the same starting directory. They can safely discuss or
 - It can launch official installers only after individual confirmation. It does not silently install, update, uninstall, or authenticate any AI tool.
 - It does not install Git for Windows, which Kimi Code expects for normal use.
 - It does not manage subscriptions, usage limits, model selection, or login sessions.
-- If an AI process exits, its pane remains at PowerShell so an error message can still be read.
+- If an AI process exits, its pane remains at PowerShell so an error message can still be read. A successful launch exit means the window request was submitted; it does not prove provider readiness, authentication, or successful startup.
+- Readiness/preview do not execute provider commands or prove that discovered files are healthy executables. Discovery follows the caller's PATHEXT order and selects only `.exe`, `.cmd`, or `.bat`; `.ps1` wrappers are not selected, and changing a file after discovery is outside this utility's control.
+- The generated preview relies on this process's displayed/discovered paths and inherited variables; it is a diagnostic, not a portable command to paste into another environment.
 - Very narrow displays may be more comfortable with one or two panes or separate tabs.
 
 ## Development and verification
@@ -110,7 +113,7 @@ powershell.exe -NoProfile -File tests/Test-AITerminalDeck.ps1
 powershell.exe -NoProfile -File scripts/package.ps1
 ```
 
-The tests use temporary stub commands, suppress install prompts, and use dry-run mode; they do not install, launch, or authenticate real AI services. See [DEVELOPMENT.md](DEVELOPMENT.md), [security notes](docs/SAFETY.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests use temporary inert commands and never install or authenticate real AI services. Native command-binding tests execute actual Windows cmd/Windows PowerShell against markers while Windows Terminal is a capture fixture; that proves argument/environment binding, not a real Terminal window. Gold additionally requires the separate real-Windows-Terminal acceptance in TESTING.md. The ZIP includes all linked guidance, tests and packaging scripts; the standalone BAT remains the only runtime file. See [DEVELOPMENT.md](DEVELOPMENT.md), [security notes](docs/SAFETY.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Maintenance and contributions
 

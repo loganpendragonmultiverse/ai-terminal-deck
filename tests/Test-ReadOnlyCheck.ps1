@@ -4,7 +4,7 @@ $launcher = Join-Path $projectRoot "Launch-AI-Terminal-Deck.bat"
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ("deck-readonly-" + [guid]::NewGuid().ToString("N"))
 $fixtureProfile = Join-Path $testRoot "Fake Profile"
 $fixtureLocal = Join-Path $testRoot "Fake Local"
-$stubBin = Join-Path $testRoot "bin"
+$stubBin = Join-Path $testRoot "bin & (quoted path)"
 $log = Join-Path $testRoot "operations.log"
 $instrumented = Join-Path $testRoot "launcher.bat"
 $saved = @{}
@@ -29,7 +29,7 @@ try {
     $env:AI_TERMINAL_DECK_WORKDIR = $testRoot
     $env:AI_TERMINAL_DECK_NO_PAUSE = "1"
     $env:AI_TERMINAL_DECK_SKIP_KNOWN_PATHS = $null
-    $env:PATH = "$stubBin;$env:SystemRoot\System32;$env:SystemRoot"
+    $env:PATH = '"' + $stubBin + '";' + "$env:SystemRoot\System32;$env:SystemRoot"
     $beforePath = $env:PATH
     $command = '""' + $instrumented + '" --check"'
     $result = & "$env:SystemRoot\System32\cmd.exe" /d /s /c $command 2>&1
