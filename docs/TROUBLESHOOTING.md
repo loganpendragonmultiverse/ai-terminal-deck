@@ -2,7 +2,7 @@
 
 ## Claude installed successfully but still appears missing
 
-Claude's native Windows installer can place `claude.exe` in `%USERPROFILE%\.local\bin` without adding that folder to `PATH`. Version 1.0.4 and newer recognizes the official location, activates it immediately, and adds the folder to the user `PATH` for future terminals.
+Claude's native Windows installer can place `claude.exe` in `%USERPROFILE%\.local\bin` without adding that folder to `PATH`. Version 1.0.5 and newer recognizes the official location and activates it only inside the launcher process. User and machine `PATH` remain unchanged. The persistent PATH behavior existed only in historical version 1.0.4.
 
 ## Codex opens before Claude or Kimi setup finishes
 
@@ -47,3 +47,9 @@ That is controlled by the individual AI CLI. Complete its official login flow an
 ## A pane returns to PowerShell
 
 The AI command exited or failed. Its PowerShell host intentionally remains open so the final message is visible. Read the output, run the command again if appropriate, or close the pane.
+
+## Preview shows a surprising command path
+
+Use `Launch-AI-Terminal-Deck.bat --preview [folder]` to inspect every resolved path and layout without prompts, installation, or launching. The first supported `.exe`, `.cmd`, or `.bat` on the effective process PATH is selected; readiness discovery is not a trust or executable-health check. A similarly named file in the current directory is ignored unless that directory is explicitly on PATH. The exact selected path is supplied to each pane; Discovery follows the caller's PATHEXT order and selects only `.exe`, `.cmd`, or `.bat`; `.ps1` wrappers are not selected.
+
+The working directory is supplied as literal data. A preview is tied to its process environment and is not a portable shell command. When an installer has been accepted, the launcher preserves its process PATH while also reading updated user/machine values; no values are persisted by the launcher.

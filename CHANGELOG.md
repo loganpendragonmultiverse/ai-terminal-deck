@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## [1.1.0] - Unreleased candidate
+
+- Add public, non-interactive layout preview with exact discovered command paths.
+- Bind pane commands to supported PATH files and ignore implicit current-directory matches.
+- Preserve literal working directories and process-specific PATH values without persistent writes.
+- Add real cmd/Windows PowerShell command-binding regression fixtures; real Windows Terminal UI acceptance remains a separate release gate.
+- Correct historical persistent-PATH claims and bundle linked guidance/tests in the ZIP.
+- Reject mismatched package versions and existing output directories.
+
 ## [1.0.5] - 2026-10-16
 
 ### Fixed

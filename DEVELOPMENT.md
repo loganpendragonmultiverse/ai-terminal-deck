@@ -1,6 +1,6 @@
 # Development record
 
-Version 1.0.4 activates publisher-standard install paths before detection. This repairs Claude's successful native install at `%USERPROFILE%\.local\bin\claude.exe` when the upstream installer leaves the directory absent from `PATH`; the launcher also persists that exact verified folder in the user `PATH`. Documentation now distinguishes provider-specific authentication and starting-directory selection from filesystem permissions.
+Version 1.0.4 activates publisher-standard install paths before detection. This historical release repaired Claude's successful native install at `%USERPROFILE%\.local\bin\claude.exe` when the upstream installer left the directory absent from `PATH`. Version 1.0.5 removed its persistent user PATH write; current discovery changes only the launcher process. Documentation now distinguishes provider-specific authentication and starting-directory selection from filesystem permissions.
 
 Version 1.0.3 separates selection, installation, and launch. The launcher records every missing-component choice before running installers, forces the official Codex script's supported non-interactive mode to suppress its internal “Start Codex now?” prompt, completes every selected installer, refreshes `PATH`, rechecks availability, and requests final confirmation before opening panes. `AI_TERMINAL_DECK_INSTALL_DRY_RUN=1` is an internal test seam for exercising the complete interactive sequence without invoking provider installers.
 
@@ -21,3 +21,9 @@ CodeQL does not analyze Windows batch files. The repository therefore uses Windo
 ## 1.0.5 — 2026-10-16
 
 Official install-folder discovery now changes only the launcher's process PATH. Readiness checks never persist user or machine environment settings, prompt, install, or launch tools, including missing-tool and invalid-directory paths. Persistent PATH repair has been removed; users can configure their environment separately if they want a permanent change. Synthetic Windows fixtures intercept every PowerShell environment/installer/launch operation and use fake official install folders.
+
+## 1.1.0 candidate — 2026-10-21
+
+Add a public non-interactive `--preview` mode and report the exact discovered paths. Bind each pane to that path instead of asking a different shell to search again. Search explicit process PATH entries rather than the implicit current directory; retain process-specific PATH entries after consented installation. Carry literal paths through process environment variables and set the pane location with `Set-Location -LiteralPath` before invoking its bound command. No user/machine environment writes, provider installation without consent, credentials, or orchestration are added.
+
+Keep the standalone BAT runtime and ship complete linked guidance/test sources in the ZIP. Packaging rejects mismatched versions and refuses an existing output directory. Preserve all existing tests and consent checks; hosted Windows tests additionally exercise real cmd/Windows PowerShell with inert markers. Actual Windows Terminal UI acceptance remains separate and cannot be inferred from a fixture.
