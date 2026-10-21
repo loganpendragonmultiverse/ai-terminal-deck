@@ -1,9 +1,10 @@
+param([string]$ArtifactDirectory, [switch]$VerifyOnly)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = Split-Path -Parent $PSScriptRoot
 $launcher = Join-Path $root 'Launch-AI-Terminal-Deck.bat'
 $version = [regex]::Match([IO.File]::ReadAllText($launcher), 'AI_TERMINAL_DECK_VERSION=(\d+\.\d+\.\d+)').Groups[1].Value
-$dist = Join-Path $root 'dist'
+$dist = if ($ArtifactDirectory) { [IO.Path]::GetFullPath($ArtifactDirectory) } else { Join-Path $root 'dist' }
 $archive = Join-Path $dist "ai-terminal-deck-$version.zip"
 $zip = [IO.Compression.ZipFile]::OpenRead($archive)
 try {
@@ -29,10 +30,12 @@ foreach ($line in Get-Content -LiteralPath (Join-Path $dist 'SHA256SUMS.txt')) {
     if ($hash -ne $Matches[1]) { throw "Checksum differs: $path" }
     $before[$path] = $hash
 }
+if (-not $VerifyOnly) {
 foreach ($requestedVersion in @($version,'0.0.0')) {
     $refused = $false
     try { & (Join-Path $root 'scripts/package.ps1') -Version $requestedVersion } catch { $refused = $true }
     if (-not $refused) { throw 'Packaging overwrote an existing output or accepted a mismatched version.' }
+}
 }
 foreach ($path in $before.Keys) {
     if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $before[$path]) { throw "Refused packaging modified an artifact: $path" }

@@ -50,7 +50,14 @@ try {
         Require (($partial -join "`n") -notmatch 'Install .*now|Press any key|Opening .*pane') 'A partial preview prompted or claimed a launch.'
         Require (-not (Test-Path -LiteralPath $capture)) 'A partial preview invoked a terminal.'
         Move-Item -LiteralPath (Join-Path $bin 'kimi.held') -Destination (Join-Path $bin 'kimi.cmd')
-        $extra = & "$env:SystemRoot\System32\cmd.exe" /d /s /c ('""' + $launcher + '" --preview "' + $workdir + '" extra"') 2>&1
+        # A batch invoker avoids a second PowerShell/native-string quoting layer;
+        # cmd expands the directory environment value once as a quoted argument.
+        $argumentInvoker = Join-Path $testRoot 'arguments.bat'
+        [IO.File]::WriteAllText($argumentInvoker, '@echo off' + "`r`n" + '"' + $launcher + '" --preview "%AI_TERMINAL_DECK_WORKDIR%"' + "`r`n")
+        $explicit = & "$env:SystemRoot\System32\cmd.exe" /d /s /c ('""' + $argumentInvoker + '""') 2>&1
+        Require ($LASTEXITCODE -eq 0) "Literal explicit directory argument failed: $explicit"
+        [IO.File]::WriteAllText($argumentInvoker, '@echo off' + "`r`n" + '"' + $launcher + '" --preview "%AI_TERMINAL_DECK_WORKDIR%" extra' + "`r`n")
+        $extra = & "$env:SystemRoot\System32\cmd.exe" /d /s /c ('""' + $argumentInvoker + '""') 2>&1
         Require ($LASTEXITCODE -eq 2) "Extra arguments were not rejected: $extra"
         $line = '""' + $launcher + '""'
         $result = & "$env:SystemRoot\System32\cmd.exe" /d /s /c $line 2>&1

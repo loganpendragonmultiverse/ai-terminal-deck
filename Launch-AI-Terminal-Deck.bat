@@ -12,6 +12,7 @@ set "INSTALL_KIMI=0"
 
 if /I "%~1"=="--help" goto :help
 if /I "%~1"=="-h" goto :help
+if not "%~3"=="" goto :invalid_arguments
 
 if /I "%~1"=="--check" (
     set "CHECK_ONLY=1"
@@ -23,7 +24,6 @@ if /I "%~1"=="--check" (
     set "WORKDIR=%~1"
 )
 if "%CHECK_ONLY%%PREVIEW_ONLY%"=="00" if not "%~2"=="" goto :invalid_arguments
-if not "%~3"=="" goto :invalid_arguments
 
 if not defined WORKDIR set "WORKDIR=%AI_TERMINAL_DECK_WORKDIR%"
 if not defined WORKDIR set "WORKDIR=%USERPROFILE%\Documents"
