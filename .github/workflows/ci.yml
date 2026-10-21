@@ -3,6 +3,12 @@ on:
   push: { branches: [main] }
   pull_request: { branches: [main] }
   workflow_dispatch:
+    inputs:
+      serialization_diagnostics:
+        description: Inert receipt serialization only; no Terminal or providers
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 jobs:
@@ -40,3 +46,64 @@ jobs:
             dist/Launch-AI-Terminal-Deck.bat
             dist/ai-terminal-deck-*.zip
             dist/SHA256SUMS.txt
+  serialization-diagnostic:
+    if: github.event_name == 'workflow_dispatch' && inputs.serialization_diagnostics
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Parse inert diagnostic in Windows PowerShell 5.1
+        id: parser5
+        shell: powershell
+        run: |
+          $path = Join-Path $env:GITHUB_WORKSPACE '.github/verification/SerializationDiagnostics.ps1'
+          $tokens=$null; $errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+          Write-Host ('Parser '+$PSVersionTable.PSVersion.ToString()+' errors='+$errors.Count)
+          if ($errors.Count -gt 0) { throw ($errors -join '; ') }
+      - name: Parse inert diagnostic in PowerShell 7
+        id: parser7
+        shell: pwsh
+        run: |
+          $path = Join-Path $env:GITHUB_WORKSPACE '.github/verification/SerializationDiagnostics.ps1'
+          $tokens=$null; $errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+          Write-Host ('Parser '+$PSVersionTable.PSVersion.ToString()+' errors='+$errors.Count)
+          if ($errors.Count -gt 0) { throw ($errors -join '; ') }
+      - name: Verify reviewed diagnostic bytes
+        shell: pwsh
+        run: |
+          $path = Join-Path $env:GITHUB_WORKSPACE '.github/verification/SerializationDiagnostics.ps1'
+          if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne '497e90c1f276de5c343c56481509d5296f10a8cfb0a50220289011f31e691a4d') { throw 'Reviewed diagnostic bytes changed' }
+      - name: Observe serialization in Windows PowerShell 5.1
+        id: winps
+        continue-on-error: true
+        shell: powershell
+        run: ./.github/verification/SerializationDiagnostics.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/deck-serialization-ps5"
+      - name: Observe serialization in PowerShell 7
+        id: pwsh
+        continue-on-error: true
+        shell: pwsh
+        run: ./.github/verification/SerializationDiagnostics.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/deck-serialization-ps7"
+      - name: Require both diagnostic hosts to pass
+        if: always()
+        shell: pwsh
+        env:
+          WINPS_OUTCOME: ${{ steps.winps.outcome }}
+          PWSH_OUTCOME: ${{ steps.pwsh.outcome }}
+        run: |
+          if ($env:WINPS_OUTCOME -ne 'success' -or $env:PWSH_OUTCOME -ne 'success') { throw 'At least one inert diagnostic host failed; inspect retained evidence' }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: inert-serialization-diagnostic
+          path: |
+            ${{ runner.temp }}/deck-serialization-ps5
+            ${{ runner.temp }}/deck-serialization-ps7
+          if-no-files-found: warn
+          retention-days: 7
