@@ -3,6 +3,12 @@ on:
   push: { branches: [main] }
   pull_request: { branches: [main] }
   workflow_dispatch:
+    inputs:
+      inert_dpi_diagnostics:
+        description: Reviewed thread-DPI diagnostic only; no Terminal or capture
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 jobs:
@@ -40,3 +46,40 @@ jobs:
             dist/Launch-AI-Terminal-Deck.bat
             dist/ai-terminal-deck-*.zip
             dist/SHA256SUMS.txt
+  inert-dpi-initialization:
+    if: github.event_name == 'workflow_dispatch' && inputs.inert_dpi_diagnostics == true
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify frozen diagnostic and parse with actual Windows PowerShell
+        shell: pwsh
+        run: |
+          $env:DECK_DPI_SCRIPT=Join-Path $env:GITHUB_WORKSPACE '.github/verification/DpiInitialization.ps1'
+          if((Get-FileHash -LiteralPath $env:DECK_DPI_SCRIPT -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f455f0509dd0090277a9008d611a40711a2d0611f558fe8e99b75e5a8f824613'){throw 'Reviewed diagnostic bytes changed'}
+          $env:DECK_DPI_PARSER=Join-Path $env:RUNNER_TEMP 'deck-dpi-init-parser-${{ github.run_id }}-${{ github.run_attempt }}'
+          $parseCode=@'
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($env:DECK_DPI_SCRIPT,[ref]$tokens,[ref]$errors)
+          New-Item -ItemType Directory -Path $env:DECK_DPI_PARSER -ErrorAction Stop | Out-Null
+          [ordered]@{powershell=$PSVersionTable.PSVersion.ToString();script_sha256=(Get-FileHash -LiteralPath $env:DECK_DPI_SCRIPT -Algorithm SHA256).Hash;error_count=$errors.Count;errors=@($errors | ForEach-Object {$_.ToString()})} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $env:DECK_DPI_PARSER 'parser.json') -Encoding UTF8
+          if($errors.Count -gt 0){exit 1}
+          '@
+          $hostPS=Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          & $hostPS -NoProfile -NonInteractive -Command $parseCode
+          if($LASTEXITCODE -ne 0){throw 'Actual Windows PowerShell parser failed'}
+      - name: Run four bounded framework-initialization children
+        shell: pwsh
+        run: ./.github/verification/DpiInitialization.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/deck-dpi-init-evidence-${{ github.run_id }}-${{ github.run_attempt }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: inert-dpi-init-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/deck-dpi-init-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+            ${{ runner.temp }}/deck-dpi-init-parser-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
