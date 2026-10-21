@@ -9,7 +9,7 @@ $dist = if ($ArtifactDirectory) { [IO.Path]::GetFullPath($ArtifactDirectory) } e
 $archive = Join-Path $dist "ai-terminal-deck-$version.zip"
 $zip = [IO.Compression.ZipFile]::OpenRead($archive)
 try {
-    $required = @('Launch-AI-Terminal-Deck.bat','README.md','CHANGELOG.md','DEVELOPMENT.md','TESTING.md','LICENSE')
+    $required = @('Launch-AI-Terminal-Deck.bat','README.md','CHANGELOG.md','DEVELOPMENT.md','TESTING.md','LICENSE','CONTRIBUTING.md','CODE_OF_CONDUCT.md','SECURITY.md','SUPPORT.md')
     foreach ($directory in @('docs','tests','scripts')) {
         $required += Get-ChildItem -LiteralPath (Join-Path $root $directory) -File -Recurse | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\','/') }
     }

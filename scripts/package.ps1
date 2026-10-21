@@ -12,7 +12,9 @@ $changelog = Join-Path $projectRoot "CHANGELOG.md"
 $development = Join-Path $projectRoot "DEVELOPMENT.md"
 $testing = Join-Path $projectRoot "TESTING.md"
 
-foreach ($required in @($launcher, $readme, $license, $changelog, $development, $testing)) {
+$releaseFiles = @($launcher, $readme, $license, $changelog, $development, $testing)
+$releaseFiles += @('CONTRIBUTING.md','CODE_OF_CONDUCT.md','SECURITY.md','SUPPORT.md') | ForEach-Object { Join-Path $projectRoot $_ }
+foreach ($required in $releaseFiles) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required release file is missing: $required" }
 }
 
@@ -28,7 +30,7 @@ $standaloneLauncher = Join-Path $resolvedOutput "Launch-AI-Terminal-Deck.bat"
 Copy-Item -LiteralPath $launcher -Destination $standaloneLauncher
 $staging = Join-Path $resolvedOutput "ai-terminal-deck-$Version"
 New-Item -ItemType Directory -Path $staging | Out-Null
-Copy-Item -LiteralPath $launcher, $readme, $license, $changelog, $development, $testing -Destination $staging
+Copy-Item -LiteralPath $releaseFiles -Destination $staging
 foreach ($directory in @('docs','tests','scripts')) { Copy-Item -LiteralPath (Join-Path $projectRoot $directory) -Destination $staging -Recurse }
 
 $archive = Join-Path $resolvedOutput "ai-terminal-deck-$Version.zip"
