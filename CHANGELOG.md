@@ -4,6 +4,8 @@ All notable changes are documented here. The project follows Semantic Versioning
 
 ## [1.1.0]
 
+- Serialize native acceptance marker evidence as plain strings so Windows PowerShell 5.1 does not retain filesystem metadata; preserve marker assertions and the separate real-UI gate.
+
 - Fix quoted discovery redirection that emitted spurious where.exe errors and stopped Windows PowerShell 5.1 verification.
 - Assert separate raw stdout/stderr and exit statuses; run the full suite in Windows PowerShell 5.1 and PowerShell 7.
 - Require stable numeric release tags, repeat the credential scan and pin maintained release actions.

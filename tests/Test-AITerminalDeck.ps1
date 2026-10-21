@@ -194,6 +194,7 @@ Write-Host ""
 & (Join-Path $PSScriptRoot "Test-ReadOnlyCheck.ps1")
 & (Join-Path $PSScriptRoot "Test-NativeCommandBinding.ps1")
 & (Join-Path $PSScriptRoot "Test-ProcessPathRefresh.ps1")
+& (Join-Path $PSScriptRoot "Test-NativeReceiptSerialization.ps1")
 Write-Host "$script:passed passed, $script:failed failed"
 if ($script:failed -gt 0) { exit 1 }
 exit 0

@@ -11,7 +11,7 @@ function Path-Hash([string]$Value) {
     $sha = [Security.Cryptography.SHA256]::Create()
     try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Value)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
 }
-$runnerVersion = '1.0.0'
+$runnerVersion = '1.0.1'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'An independently verified interactive Windows desktop is required.' }
 $launcher = Join-Path ([IO.Path]::GetFullPath($ArtifactDirectory)) 'Launch-AI-Terminal-Deck.bat'
 $actualHash = (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -84,7 +84,7 @@ try {
         $path = Join-Path $markers ($name + '.txt')
         $lines = @(Get-Content -LiteralPath $path)
         if ($lines.Count -ne 2 -or $lines[0] -ne ('marker:' + $name) -or $lines[1] -ne $workdir) { throw "Incorrect marker or literal working directory: $name" }
-        $observed += @{tool=$name;path=$path;sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();lines=$lines}
+        $observed += @{tool=$name;path=$path;sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();lines=@($lines | ForEach-Object { [string]::new($_.ToCharArray()) })}
     }
     if (@(Get-ChildItem -LiteralPath $markers -Filter '*.txt').Count -ne $ToolCount) { throw 'An unselected marker executed.' }
     $record.markers = $observed
