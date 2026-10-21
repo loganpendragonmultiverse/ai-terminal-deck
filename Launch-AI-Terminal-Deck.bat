@@ -153,7 +153,7 @@ exit /b 0
 :detect
 set "%~2=0"
 set "%~4="
-for /f "delims=" %%P in ('""%SystemRoot%\System32\where.exe" "$PATH:%~1" 2^>nul"') do if not defined %~4 (
+for /f "delims=" %%P in ('""%SystemRoot%\System32\where.exe" "$PATH:%~1" 2>nul"') do if not defined %~4 (
     for %%E in (.exe .cmd .bat) do if /I "%%~xP"=="%%E" (
         set "%~4=%%~fP"
         set "%~2=1"

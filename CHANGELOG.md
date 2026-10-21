@@ -4,6 +4,10 @@ All notable changes are documented here. The project follows Semantic Versioning
 
 ## [1.1.0]
 
+- Fix quoted discovery redirection that emitted spurious where.exe errors and stopped Windows PowerShell 5.1 verification.
+- Assert separate raw stdout/stderr and exit statuses; run the full suite in Windows PowerShell 5.1 and PowerShell 7.
+- Require stable numeric release tags, repeat the credential scan and pin maintained release actions.
+
 - Add public, non-interactive layout preview with exact discovered command paths.
 - Bind pane commands to supported PATH files and ignore implicit current-directory matches.
 - Preserve literal working directories and process-specific PATH values without persistent writes.

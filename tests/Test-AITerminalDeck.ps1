@@ -190,6 +190,7 @@ finally {
 }
 
 Write-Host ""
+& (Join-Path $PSScriptRoot "Test-DiscoveryStreams.ps1")
 & (Join-Path $PSScriptRoot "Test-ReadOnlyCheck.ps1")
 & (Join-Path $PSScriptRoot "Test-NativeCommandBinding.ps1")
 & (Join-Path $PSScriptRoot "Test-ProcessPathRefresh.ps1")

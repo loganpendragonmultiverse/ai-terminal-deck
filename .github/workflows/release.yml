@@ -7,19 +7,36 @@ jobs:
   package:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - name: Require a stable numeric version tag
+        id: tag_version
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $tag -cnotmatch '\Av(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z') { throw "Expected a stable vMAJOR.MINOR.PATCH tag" }
+          "version=$($tag.Substring(1))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run launcher behavior tests
         shell: pwsh
         run: ./tests/Test-AITerminalDeck.ps1
-      - name: Build release artifacts
+      - name: Run full launcher tests in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/Test-AITerminalDeck.ps1
+      - name: Inspect tracked files for accidental credentials
         shell: pwsh
         run: |
-          $version = $env:GITHUB_REF_NAME.TrimStart("v")
-          ./scripts/package.ps1 -Version $version
+          $findings = git grep -n -I -E '(ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})' -- . ':!tests/Test-AITerminalDeck.ps1'
+          if ($LASTEXITCODE -eq 0) { throw "Possible credential material found:`n$findings" }
+          if ($LASTEXITCODE -gt 1) { throw "git grep failed with exit code $LASTEXITCODE" }
+          exit 0
+      - name: Build release artifacts
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.tag_version.outputs.version }}
+        run: ./scripts/package.ps1 -Version $env:RELEASE_VERSION
       - name: Verify packaged content and refusal safety
         shell: pwsh
         run: ./tests/Test-Package.ps1
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ai-terminal-deck-${{ github.ref_name }}
           path: |

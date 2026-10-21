@@ -13,6 +13,9 @@ jobs:
       - name: Run launcher behavior tests
         shell: pwsh
         run: ./tests/Test-AITerminalDeck.ps1
+      - name: Run full launcher tests in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/Test-AITerminalDeck.ps1
       - name: Build release artifacts
         shell: pwsh
         run: ./scripts/package.ps1
