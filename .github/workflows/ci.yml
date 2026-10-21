@@ -4,6 +4,11 @@ on:
   pull_request: { branches: [main] }
   workflow_dispatch:
     inputs:
+      inert_quoting_diagnostics:
+        description: Inert raw cmd diagnostics only; no Terminal execution
+        type: boolean
+        required: false
+        default: false
       native_ui_case:
         description: Reviewed real-Terminal case; off keeps normal CI only
         type: choice
@@ -109,5 +114,52 @@ jobs:
             ${{ runner.temp }}/deck-ui-evidence
             ${{ runner.temp }}/deck-ui-preflight
             ${{ runner.temp }}/deck-ui-parser
+          if-no-files-found: warn
+          retention-days: 7
+  inert-quoting-diagnostics:
+    if: github.event_name == 'workflow_dispatch' && inputs.inert_quoting_diagnostics == true
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Parse exact diagnostic with Windows PowerShell before execution
+        shell: pwsh
+        run: |
+          $script = Join-Path $env:GITHUB_WORKSPACE '.github/verification/InertQuotingDiagnostics.ps1'
+          if ((Get-FileHash -LiteralPath $script -Algorithm SHA256).Hash.ToLowerInvariant() -ne '8dc1b426d7df52b76b9a8c7ce1f2399d8b83a377a0f9e8577a219fc556c0dc89') { throw 'Diagnostic bytes changed' }
+          $env:DECK_DIAGNOSTIC_SCRIPT = $script
+          $hostPS = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          $parseCode = @'
+          $tokens=$null; $errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($env:DECK_DIAGNOSTIC_SCRIPT,[ref]$tokens,[ref]$errors)
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error ($_.ToString()) }; exit 1 }
+          Write-Host ('Actual Windows PowerShell parser passed: '+$PSVersionTable.PSVersion.ToString())
+          '@
+          & $hostPS -NoProfile -NonInteractive -Command $parseCode
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic parser failed' }
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: 12312291511
+          repository: loganpendragonmultiverse/ai-terminal-deck
+          run-id: 39522743243
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/deck-inert-frozen-assets
+      - name: Inert raw cmd quoting diagnostics only
+        shell: pwsh
+        run: |
+          $hostPS = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          & $hostPS -NoProfile -File .github/verification/InertQuotingDiagnostics.ps1 -FrozenAssets "$env:RUNNER_TEMP/deck-inert-frozen-assets" -EvidenceDirectory "$env:RUNNER_TEMP/deck-inert-evidence"
+          if ($LASTEXITCODE -ne 0) { throw 'Inert diagnostic failed; preserve evidence and stop' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: inert-quoting-diagnostic
+          path: ${{ runner.temp }}/deck-inert-evidence
           if-no-files-found: warn
           retention-days: 7
