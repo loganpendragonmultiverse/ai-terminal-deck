@@ -63,7 +63,7 @@ jobs:
         shell: pwsh
         run: |
           $observer = Join-Path $env:GITHUB_WORKSPACE '.github/verification/HostedNativeUI.ps1'
-          if ((Get-FileHash -LiteralPath $observer -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'b7fb8c25d6f49098fc29480067310ee5957165d20e695fdd567169fe020a1ff3') { throw 'Reviewed observer bytes changed' }
+          if ((Get-FileHash -LiteralPath $observer -Algorithm SHA256).Hash.ToLowerInvariant() -ne '5ca94d22a62d8d8e309fe5b2a06358178aadafa0bdfe93b1a976f323fb5b420a') { throw 'Reviewed observer bytes changed' }
           $control = Join-Path $env:GITHUB_WORKSPACE '.github/verification/ReceiptNegativeControl.ps1'
           if ((Get-FileHash -LiteralPath $control -Algorithm SHA256).Hash.ToLowerInvariant() -ne '92bb270cc1d6a79c6f83e5cafb681fda33b7367518404bc3f6d5cd43e8c70dbb') { throw 'Reviewed inert control bytes changed' }
       - name: Parse observer and inert control with actual Windows PowerShell before any Terminal download

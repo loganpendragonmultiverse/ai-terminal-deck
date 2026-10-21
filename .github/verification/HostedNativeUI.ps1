@@ -55,7 +55,15 @@ public static class DeckDesktop {
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
 }
 '@
- # Only THIS observer thread changes DPI context; no display/global/persistent setting changes.
+ # Initialize UIA before the temporary DPI scope; first-use changed restoration in the inert UIA-only control.
+ # The framework may initialize this short-lived process; this observer calls no process/global DPI setter.
+ $proof.uia_initialization_before=[DeckDesktop]::DpiSnapshot([IntPtr]::Zero)
+ $uiaInitializationRoot=[System.Windows.Automation.AutomationElement]::RootElement
+ $proof.uia_initialization_root_native_handle=$uiaInitializationRoot.Current.NativeWindowHandle
+ $uiaInitializationRoot=$null
+ $proof.uia_initialization_after=[DeckDesktop]::DpiSnapshot([IntPtr]::Zero)
+ # The temporary thread-DPI baseline is taken AFTER framework initialization, not the process-entry context.
+ # Explicit DPI changes below target only this observer thread; no display/global/persistent setting changes.
  $proof.dpi_set=[DeckDesktop]::ChangeDpiObserved([IntPtr](-4))
  $oldDpiContext=[IntPtr]([long]$proof.dpi_set['returned_previous'])
  if($oldDpiContext -eq [IntPtr]::Zero){throw 'Cannot establish observer-thread PMv2 physical coordinates'}
