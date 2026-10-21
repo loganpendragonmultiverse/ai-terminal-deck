@@ -7,6 +7,7 @@ New-Item -ItemType Directory -Path $EvidenceDirectory | Out-Null
 $proof=[ordered]@{schema=1;status='attempting';source_ref='85dda7cf9aefb81992c920a7931254780c9336ee';tag='v1.1.0';tag_object='dd74b59d611b75f588c45a8d211c64353f64981d';tag_build_run=39561085714;case=$ToolCount;native_ui_verified=$false;review_required=$true;image_version=$env:ImageVersion;runner_image=$env:ImageOS;workflow_run=$env:GITHUB_RUN_ID;workflow_head=$env:GITHUB_SHA}
 $proof.observer_powershell=$PSVersionTable.PSVersion.ToString();$proof.os=[Environment]::OSVersion.VersionString
 $ownedWindow=[IntPtr]::Zero;$qualifiedOwnership=$false;$dpiChanged=$false;$oldDpiContext=[IntPtr]::Zero
+$primaryError=$null;$restoreError=$null;$reportError=$null
 try{
 Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,WindowsBase,System.Drawing,System.Windows.Forms
 Add-Type -TypeDefinition @'
@@ -17,6 +18,19 @@ public static class DeckDesktop {
  [DllImport("user32.dll")] public static extern IntPtr GetThreadDpiAwarenessContext();
  [DllImport("user32.dll")] public static extern bool AreDpiAwarenessContextsEqual(IntPtr a,IntPtr b);
  [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern bool IsValidDpiAwarenessContext(IntPtr c);
+ [DllImport("user32.dll")] public static extern int GetAwarenessFromDpiAwarenessContext(IntPtr c);
+ public static Dictionary<string,object> DpiSnapshot(IntPtr reference){
+  IntPtr current=GetThreadDpiAwarenessContext();var d=new Dictionary<string,object>();
+  d["native_tid"]=GetCurrentThreadId();d["current_context"]=current.ToInt64();d["current_valid"]=IsValidDpiAwarenessContext(current);d["current_awareness"]=GetAwarenessFromDpiAwarenessContext(current);
+  d["reference_context"]=reference.ToInt64();d["reference_valid"]=reference!=IntPtr.Zero&&IsValidDpiAwarenessContext(reference);d["equal_to_reference"]=reference==IntPtr.Zero?(object)null:AreDpiAwarenessContextsEqual(current,reference);d["equal_to_pmv2"]=AreDpiAwarenessContextsEqual(current,new IntPtr(-4));return d;
+ }
+ public static Dictionary<string,object> ChangeDpiObserved(IntPtr desired){
+  var before=DpiSnapshot(desired);uint tid=GetCurrentThreadId();
+  IntPtr previous=SetThreadDpiAwarenessContext(desired);
+  int error=Marshal.GetLastWin32Error(); // Immediate observation; this API documents no extended-error contract.
+  var d=new Dictionary<string,object>();d["before"]=before;d["setter_native_tid"]=tid;d["requested"]=desired.ToInt64();d["returned_previous"]=previous.ToInt64();d["returned_null"]=previous==IntPtr.Zero;d["immediate_last_error"]=error;d["extended_error_contract_documented"]=false;d["after"]=DpiSnapshot(previous);return d;
+ }
  [DllImport("wtsapi32.dll",EntryPoint="WTSQuerySessionInformationW")] static extern bool WtsInfo(IntPtr server,int session,int kind,out IntPtr buffer,out uint bytes);
  [DllImport("wtsapi32.dll")] static extern void WTSFreeMemory(IntPtr p);
  public static int SessionState(int id){IntPtr p;uint n;if(!WtsInfo(IntPtr.Zero,id,8,out p,out n))throw new Exception("Session state unavailable");try{if(n<4)throw new Exception("Invalid session state");return Marshal.ReadInt32(p);}finally{WTSFreeMemory(p);}}
@@ -42,7 +56,8 @@ public static class DeckDesktop {
 }
 '@
  # Only THIS observer thread changes DPI context; no display/global/persistent setting changes.
- $oldDpiContext=[DeckDesktop]::SetThreadDpiAwarenessContext([IntPtr](-4))
+ $proof.dpi_set=[DeckDesktop]::ChangeDpiObserved([IntPtr](-4))
+ $oldDpiContext=[IntPtr]([long]$proof.dpi_set['returned_previous'])
  if($oldDpiContext -eq [IntPtr]::Zero){throw 'Cannot establish observer-thread PMv2 physical coordinates'}
  $dpiChanged=$true
  $proof.dpi_context_before=$oldDpiContext.ToInt64();$proof.dpi_context_requested='PER_MONITOR_AWARE_V2'
@@ -187,7 +202,7 @@ public static class DeckDesktop {
  $proof.screenshot=@{path='task-window.png';sha256=(Get-FileHash $png -Algorithm SHA256).Hash;width=$width;height=$height}
  $proof.live_ui_automated_checks_passed=$true;$proof.status='pending-independent-screenshot-review'
  # Never sets native_ui_verified=true: actual independent image review remains required.
-}catch{$proof.status='failed-or-unavailable';$proof.error=$_.Exception.Message;throw}
+}catch{$primaryError=$_;$proof.status='failed-or-unavailable';$proof.error=$_.Exception.Message}
 finally{
  try{
   if($qualifiedOwnership -and [DeckDesktop]::IsWindow($ownedWindow)){
@@ -211,13 +226,30 @@ finally{
  if(-not $proof.Contains('owned_window_closed')){$proof.owned_window_closed=$false}
  if($dpiChanged){
   try{
-   $restoreResult=[DeckDesktop]::SetThreadDpiAwarenessContext($oldDpiContext)
+   $proof.dpi_before_restore=[DeckDesktop]::DpiSnapshot($oldDpiContext)
+   $proof.dpi_restore=[DeckDesktop]::ChangeDpiObserved($oldDpiContext)
+   $restoreResult=[IntPtr]([long]$proof.dpi_restore['returned_previous'])
+   $proof.dpi_after_restore=[DeckDesktop]::DpiSnapshot($oldDpiContext)
    $proof.observer_thread_dpi_restored=($restoreResult -ne [IntPtr]::Zero -and [DeckDesktop]::AreDpiAwarenessContextsEqual([DeckDesktop]::GetThreadDpiAwarenessContext(),$oldDpiContext))
-  }catch{$proof.observer_thread_dpi_restored=$false;$proof.dpi_restore_error=$_.Exception.Message}
+   $proof.dpi_thread_identity_matched=($proof.dpi_set['setter_native_tid'] -eq $proof.dpi_restore['setter_native_tid'] -and $proof.dpi_set['setter_native_tid'] -eq $proof.dpi_after_restore['native_tid'])
+  }catch{$restoreError=$_;$proof.observer_thread_dpi_restored=$false;$proof.dpi_restore_error=$_.Exception.Message}
  }
+ $proof.dpi_qualification_gate_passed=($dpiChanged -and $proof.observer_thread_dpi_restored -eq $true -and $proof.dpi_thread_identity_matched -eq $true)
+ if(-not $proof.dpi_qualification_gate_passed -and $null -eq $primaryError){$proof.status='failed-dpi-restoration-or-thread-identity'}
  $proof.finished_utc=[DateTime]::UtcNow.ToString('o')
- $proof | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $EvidenceDirectory 'native-ui-observation.json') -Encoding UTF8
+ # Plain primary/restore error sidecar comes BEFORE JSON; preserve original exception priority.
+ $primaryText=if($null -ne $primaryError){$primaryError.Exception.Message}else{''}
+ $restoreText=if($null -ne $restoreError){$restoreError.Exception.Message}else{''}
+ try{[IO.File]::WriteAllText((Join-Path $EvidenceDirectory 'observer-errors.txt'),('primary_error='+$primaryText+"`nrestore_error="+$restoreText+"`n"),(New-Object Text.UTF8Encoding($false)))}catch{$reportError=$_;[Console]::Error.WriteLine('Observer error sidecar failed: '+$_.Exception.Message)}
+ try{$proof | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $EvidenceDirectory 'native-ui-observation.json') -Encoding UTF8}catch{
+  if($null -eq $reportError){$reportError=$_}
+  try{[IO.File]::WriteAllText((Join-Path $EvidenceDirectory 'observer-report-error.txt'),$_.Exception.Message,(New-Object Text.UTF8Encoding($false)))}catch{[Console]::Error.WriteLine('Observer report error sidecar failed: '+$_.Exception.Message)}
+ }
  # No arbitrary process kill, cleanup, setup or persistent settings remediation.
+ if($null -ne $primaryError){throw $primaryError}
+ if($null -ne $restoreError){throw $restoreError}
+ if($null -ne $reportError){throw $reportError}
+ if(-not $proof.dpi_qualification_gate_passed){throw 'Observer thread DPI restoration/identity is not verified; native qualification held'}
 }
 if(-not $proof.owned_window_closed){throw 'Task-window closure unverified'}
 
