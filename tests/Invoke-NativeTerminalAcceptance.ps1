@@ -7,6 +7,10 @@ param(
     [switch]$OpenTerminal
 )
 $ErrorActionPreference = 'Stop'
+function Path-Hash([string]$Value) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Value)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+}
 $runnerVersion = '1.0.0'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'An independently verified interactive Windows desktop is required.' }
 $launcher = Join-Path ([IO.Path]::GetFullPath($ArtifactDirectory)) 'Launch-AI-Terminal-Deck.bat'
@@ -45,7 +49,7 @@ $saved = @{}
 foreach ($key in $keys) { $saved[$key] = [Environment]::GetEnvironmentVariable($key,'Process') }
 $userBefore = [Environment]::GetEnvironmentVariable('PATH','User')
 $machineBefore = [Environment]::GetEnvironmentVariable('PATH','Machine')
-$record = [ordered]@{runner_version=$runnerVersion;runner_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant();launcher_sha256=$actualHash;started_utc=[DateTime]::UtcNow.ToString('o');os=[Environment]::OSVersion.VersionString;powershell=$PSVersionTable.PSVersion.ToString();terminal_path=$terminal;terminal_version=(Get-Item -LiteralPath $terminal).VersionInfo.FileVersion;task_directory=$task;expected_tools=$selected;working_directory=$workdir;real_terminal_requested=[bool]$OpenTerminal;machine_checks_passed=$false;native_ui_verified=$false;qualification='blocked-pending-native-UI-observation'}
+$record = [ordered]@{user_path_before_sha256=(Path-Hash ([string]$userBefore));machine_path_before_sha256=(Path-Hash ([string]$machineBefore));runner_version=$runnerVersion;runner_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant();launcher_sha256=$actualHash;started_utc=[DateTime]::UtcNow.ToString('o');os=[Environment]::OSVersion.VersionString;powershell=$PSVersionTable.PSVersion.ToString();terminal_path=$terminal;terminal_version=(Get-Item -LiteralPath $terminal).VersionInfo.FileVersion;task_directory=$task;expected_tools=$selected;working_directory=$workdir;real_terminal_requested=[bool]$OpenTerminal;machine_checks_passed=$false;native_ui_verified=$false;qualification='blocked-pending-native-UI-observation'}
 try {
     $env:PATH = (@($bin) + $hostBins + @($env:SystemRoot)) -join ';'
     $env:PATHEXT = '.EXE;.CMD;.BAT'
@@ -84,6 +88,8 @@ try {
     }
     if (@(Get-ChildItem -LiteralPath $markers -Filter '*.txt').Count -ne $ToolCount) { throw 'An unselected marker executed.' }
     $record.markers = $observed
+    $record.user_path_after_sha256 = Path-Hash ([string][Environment]::GetEnvironmentVariable('PATH','User'))
+    $record.machine_path_after_sha256 = Path-Hash ([string][Environment]::GetEnvironmentVariable('PATH','Machine'))
     $record.user_path_unchanged = ([Environment]::GetEnvironmentVariable('PATH','User') -eq $userBefore)
     $record.machine_path_unchanged = ([Environment]::GetEnvironmentVariable('PATH','Machine') -eq $machineBefore)
     if (-not $record.user_path_unchanged -or -not $record.machine_path_unchanged) { throw 'Persistent PATH changed.' }

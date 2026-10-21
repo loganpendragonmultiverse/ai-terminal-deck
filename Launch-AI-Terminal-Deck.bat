@@ -143,17 +143,17 @@ exit /b 0
 
 :activate_official_paths
 if /I "%AI_TERMINAL_DECK_SKIP_KNOWN_PATHS%"=="1" exit /b 0
-if exist "%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe" set "PATH=%LOCALAPPDATA%\Programs\OpenAI\Codex\bin;%PATH%"
-if exist "%USERPROFILE%\.kimi-code\bin\kimi.exe" set "PATH=%USERPROFILE%\.kimi-code\bin;%PATH%"
+if exist "%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe" set "PATH=%LOCALAPPDATA%\Programs\OpenAI\Codex\bin;%PATH:"=%"
+if exist "%USERPROFILE%\.kimi-code\bin\kimi.exe" set "PATH=%USERPROFILE%\.kimi-code\bin;%PATH:"=%"
 if exist "%USERPROFILE%\.local\bin\claude.exe" (
-    set "PATH=%USERPROFILE%\.local\bin;%PATH%"
+    set "PATH=%USERPROFILE%\.local\bin;%PATH:"=%"
 )
 exit /b 0
 
 :detect
 set "%~2=0"
 set "%~4="
-for /f "delims=" %%P in ('"%SystemRoot%\System32\where.exe" "$PATH:%~1" 2^>nul') do if not defined %~4 (
+for /f "delims=" %%P in ('""%SystemRoot%\System32\where.exe" "$PATH:%~1" 2^>nul"') do if not defined %~4 (
     for %%E in (.exe .cmd .bat) do if /I "%%~xP"=="%%E" (
         set "%~4=%%~fP"
         set "%~2=1"
